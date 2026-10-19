@@ -68,7 +68,6 @@ class _QuranMainScreenState extends State<QuranMainScreen> {
     _loadSavedPage();
   }
 
-  // قراءة آخر صفحة تم إغلاق التطبيق عليها
   Future<void> _loadSavedPage() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -87,7 +86,6 @@ class _QuranMainScreenState extends State<QuranMainScreen> {
       );
     }
 
-    // فتح واجهة القراءة مباشرة على آخر صفحة توقف عندها المستخدم
     return QuranPagesView(
       initialPage: savedPage,
       isDarkMode: widget.isDarkMode,
@@ -243,13 +241,11 @@ class _QuranPageState extends State<QuranPagesView> {
     _loadBookmark();
   }
 
-  // حفظ رقم الصفحة الحالية تلقائياً
   Future<void> _saveCurrentPage(int page) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('last_quran_page', page);
   }
 
-  // تحميل العلامة المحفوظة
   Future<void> _loadBookmark() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -257,7 +253,6 @@ class _QuranPageState extends State<QuranPagesView> {
     });
   }
 
-  // حفظ علامة القراءة (Bookmark)
   Future<void> _toggleBookmark() async {
     final prefs = await SharedPreferences.getInstance();
     if (bookmarkedPage == currentPage) {
@@ -283,7 +278,6 @@ class _QuranPageState extends State<QuranPagesView> {
     }
   }
 
-  // فتح فهرس السور/الأجزاء
   void _openIndex() {
     showModalBottomSheet(
       context: context,
@@ -310,7 +304,6 @@ class _QuranPageState extends State<QuranPagesView> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      // قائمة السور
                       ListView.builder(
                         itemCount: surahs.length,
                         itemBuilder: (context, index) {
@@ -330,12 +323,11 @@ class _QuranPageState extends State<QuranPagesView> {
                           );
                         },
                       ),
-                      // قائمة الأجزاء
                       ListView.builder(
                         itemCount: 30,
                         itemBuilder: (context, index) {
                           int juzNum = index + 1;
-                          int juzPage = ((juzNum - 1) * 20) + 2; // تقريبي للصفحات
+                          int juzPage = ((juzNum - 1) * 20) + 2;
                           if (juzNum == 1) juzPage = 1;
                           return ListTile(
                             leading: const Icon(Icons.menu_book, color: Color(0xFF1B4D3E)),
@@ -359,49 +351,38 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  Widget _buildImageWithFallback(int pageNum) {
-    List<String> possiblePaths = [
-      'assets/pages/$pageNum.png',
-      'assets/pages/page_$pageNum.png',
-      'assets/pages/${pageNum.toString().padLeft(3, '0')}.png',
-      'assets/$pageNum.png',
-      'assets/page_$pageNum.png',
-      'assets/${pageNum.toString().padLeft(3, '0')}.png',
-      'assets/${pageNum.toString().padLeft(4, '0')}.png',
-    ];
+  // بناء الصفحة عبر تجميع الشرائح والأسطر الخاصة برقم الصفحة
+  Widget _buildCompositePage(int pageNum) {
+    // عادة تحتوي كل صفحة على ما بين 1 إلى 25 شريحة وسطر
+    List<int> sliceIndices = List.generate(25, (index) => index + 1);
 
-    Widget tryLoadPath(int pathIndex) {
-      if (pathIndex >= possiblePaths.length) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.menu_book, size: 64, color: Colors.grey),
-              const SizedBox(height: 12),
-              Text(
-                'صفحة رقم $pageNum',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'جارٍ تحميل صفحة المصحف...',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-        );
-      }
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAlignment.center,
+        children: sliceIndices.map((sliceIndex) {
+          String normalPath = 'assets/$pageNum.$sliceIndex.png';
+          String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
+          String selectedPath = (widget.isDarkMode) ? darkPath : normalPath;
 
-      return Image.asset(
-        possiblePaths[pathIndex],
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return tryLoadPath(pathIndex + 1);
-        },
-      );
-    }
-
-    return tryLoadPath(0);
+          return Image.asset(
+            selectedPath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              // إذا لم توجد صورة المود المظلم نجرب الصورة العادية
+              if (widget.isDarkMode) {
+                return Image.asset(
+                  normalPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                );
+              }
+              return const SizedBox.shrink(); // إخفاء الشرائح غير الموجودة
+            },
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
@@ -448,9 +429,10 @@ class _QuranPageState extends State<QuranPagesView> {
             minScale: 1.0,
             maxScale: 4.0,
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               color: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
               child: Center(
-                child: _buildImageWithFallback(pageNum),
+                child: _buildCompositePage(pageNum),
               ),
             ),
           );
