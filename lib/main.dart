@@ -351,33 +351,37 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // تجميع الشرائح الخاصة بالصفحة
+  // تجميع جميع شرائح الصفحة (زادت إلى 30 لضمان نزول الصفحة بالكامل حتى السطر الأخير وسورة الناس)
   Widget _buildCompositePage(int pageNum) {
-    List<int> sliceIndices = List.generate(25, (index) => index + 1);
+    List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
     return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center, // تم التصحيح هنا
-        children: sliceIndices.map((sliceIndex) {
-          String normalPath = 'assets/$pageNum.$sliceIndex.png';
-          String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: sliceIndices.map((sliceIndex) {
+            String normalPath = 'assets/$pageNum.$sliceIndex.png';
+            String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
 
-          return Image.asset(
-            widget.isDarkMode ? darkPath : normalPath,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              if (widget.isDarkMode) {
-                return Image.asset(
-                  normalPath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace2) => const SizedBox.shrink(),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          );
-        }).toList(),
+            return Image.asset(
+              widget.isDarkMode ? darkPath : normalPath,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                if (widget.isDarkMode) {
+                  return Image.asset(
+                    normalPath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace2) => const SizedBox.shrink(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -426,7 +430,6 @@ class _QuranPageState extends State<QuranPagesView> {
             minScale: 1.0,
             maxScale: 4.0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               color: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
               child: Center(
                 child: _buildCompositePage(pageNum),
@@ -451,7 +454,7 @@ class _QuranPageState extends State<QuranPagesView> {
               tooltip: 'التفسير (قريباً)',
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ميزة التفسير سيتم تفعيلها في التحديث القادم باذن الله')),
+                  const SnackBar(content: Text('ميزة التفسير المدمج سيتم تفعيلها في التحديث القادم باذن الله')),
                 );
               },
             ),
