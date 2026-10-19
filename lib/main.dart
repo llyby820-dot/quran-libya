@@ -351,33 +351,30 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // بناء الصفحة عبر تجميع الشرائح والأسطر الخاصة برقم الصفحة
+  // تجميع الشرائح الخاصة بالصفحة
   Widget _buildCompositePage(int pageNum) {
-    // عادة تحتوي كل صفحة على ما بين 1 إلى 25 شريحة وسطر
     List<int> sliceIndices = List.generate(25, (index) => index + 1);
 
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center, // تم التصحيح هنا
         children: sliceIndices.map((sliceIndex) {
           String normalPath = 'assets/$pageNum.$sliceIndex.png';
           String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
-          String selectedPath = (widget.isDarkMode) ? darkPath : normalPath;
 
           return Image.asset(
-            selectedPath,
+            widget.isDarkMode ? darkPath : normalPath,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              // إذا لم توجد صورة المود المظلم نجرب الصورة العادية
               if (widget.isDarkMode) {
                 return Image.asset(
                   normalPath,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace2) => const SizedBox.shrink(),
                 );
               }
-              return const SizedBox.shrink(); // إخفاء الشرائح غير الموجودة
+              return const SizedBox.shrink();
             },
           );
         }).toList(),
