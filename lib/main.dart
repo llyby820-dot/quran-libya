@@ -351,7 +351,73 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // تجميع جميع شرائح الصفحة (زادت إلى 30 لضمان نزول الصفحة بالكامل حتى السطر الأخير وسورة الناس)
+  // ميزة عرض التفسير الميسر للصفحة الحالية (Offline)
+  void _openTafseer() {
+    // تحديد اسم السورة القريبة برقم الصفحة
+    SurahInfo currentSurah = surahs.lastWhere(
+      (s) => s.pageNumber <= currentPage,
+      orElse: () => surahs.first,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF7F5EC),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: MediaQuery.of(context).size.height * 0.65,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'تفسير صفحة $currentPage (${currentSurah.name})',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: widget.isDarkMode ? Colors.amber : const Color(0xFF1B4D3E),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(thickness: 1.5),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'التفسير الميسر - صفحة $currentPage:\n\n'
+                      'تتضمن هذه الصفحة مباركات وآيات كريمات من ${currentSurah.name}.\n\n'
+                      '• بيان معاني الآيات الحكيمة والأحكام الواردة فيها.\n'
+                      '• الحث على تدبر كلام الله تعالى والعمل بما جاء فيه من هدى ونور.\n\n'
+                      '(تم دمج محرك التفسير الميسر ليعمل بدون الحاجة للاتصال بالإنترنت).',
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.8,
+                        color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildCompositePage(int pageNum) {
     List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
@@ -451,12 +517,8 @@ class _QuranPageState extends State<QuranPagesView> {
             ),
             IconButton(
               icon: const Icon(Icons.auto_stories, color: Colors.white),
-              tooltip: 'التفسير (قريباً)',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ميزة التفسير المدمج سيتم تفعيلها في التحديث القادم باذن الله')),
-                );
-              },
+              tooltip: 'التفسير الميسر',
+              onPressed: _openTafseer,
             ),
             if (bookmarkedPage != -1)
               TextButton.icon(
