@@ -38,7 +38,6 @@ class _QuranAppState extends State<QuranApp> {
   }
 }
 
-// نموذج بيانات السورة
 class SurahInfo {
   final String name;
   final int pageNumber;
@@ -53,7 +52,6 @@ class QuranIndexView extends StatelessWidget {
 
   QuranIndexView({super.key, required this.isDarkMode, required this.onToggleTheme});
 
-  // قائمة سور القرآن الكريم مع أرقام صفحاتها التقريبية في مصحف الحفظ/الرسم العثماني
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
@@ -160,9 +158,9 @@ class QuranIndexView extends StatelessWidget {
     SurahInfo("سورة العصر", 601, 103),
     SurahInfo("سورة الهمزة", 601, 104),
     SurahInfo("سورة الفيل", 601, 105),
-    SurInfo("سورة قريش", 602, 106),
+    SurahInfo("سورة قريش", 602, 106),
     SurahInfo("سورة الماعون", 602, 107),
-    SurahInfo("سورة الككوثر", 602, 108),
+    SurahInfo("سورة الكوثر", 602, 108),
     SurahInfo("سورة الكافرون", 603, 109),
     SurahInfo("سورة النصر", 603, 110),
     SurahInfo("سورة المسد", 603, 111),
@@ -246,7 +244,6 @@ class _QuranPageState extends State<QuranPagesView> {
   void initState() {
     super.initState();
     currentPage = widget.initialPage;
-    // PageController يبدأ من 0، لذا نطرح 1 من رقم الصفحة
     _pageController = PageController(initialPage: widget.initialPage - 1);
   }
 
@@ -271,7 +268,7 @@ class _QuranPageState extends State<QuranPagesView> {
       ),
       body: PageView.builder(
         controller: _pageController,
-        reverse: true, // تصفح من اليمين لليسار
+        reverse: true,
         itemCount: totalPages,
         onPageChanged: (index) {
           setState(() {
@@ -280,8 +277,6 @@ class _QuranPageState extends State<QuranPagesView> {
         },
         itemBuilder: (context, index) {
           int pageNum = index + 1;
-          
-          // مسار الصور المعتمد
           String imagePath = 'assets/page_${pageNum.toString().padLeft(3, '0')}.png';
 
           return InteractiveViewer(
