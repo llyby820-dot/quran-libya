@@ -23,7 +23,9 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      # إضافة إعدادات الأيقونة لتكون ملء الشاشة ومكبرة (Full Bleed/Adaptive)
+      - name: Create Android Platform Files
+        run: flutter create --platforms=android --project-name quran_libya .
+
       - name: Setup Launcher Icons Configuration
         run: |
           cat <<EOF > flutter_launcher_icons.yaml
