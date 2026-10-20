@@ -23,6 +23,11 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
+      # 1. إنشاء ملفات منصة أندرويد أولاً
+      - name: Create Android Platform
+        run: flutter create --platforms=android --project-name quran_libya .
+
+      # 2. الآن توليد أيقونة التطبيق بنجاح لأن AndroidManifest أصبح موجوداً
       - name: Generate App Icon
         run: |
           cat <<EOF > flutter_launcher_icons.yaml
@@ -36,9 +41,11 @@ jobs:
           flutter pub add dev:flutter_launcher_icons
           dart run flutter_launcher_icons
 
+      # 3. بناء الـ APK النهائي
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
+      # 4. رفع الملف الجاهز
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
