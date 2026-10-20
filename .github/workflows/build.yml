@@ -23,6 +23,9 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
+      - name: Recreate Android Project Files
+        run: flutter create --platforms=android .
+
       - name: Copy App Icon to Android Resources
         run: |
           if [ -f "ic_launcher.png" ]; then
