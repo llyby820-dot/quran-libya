@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const QuranApp());
 }
 
@@ -30,10 +32,6 @@ class _QuranAppState extends State<QuranApp> {
       theme: ThemeData(
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
         scaffoldBackgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
-        appBarTheme: AppBarTheme(
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFF1B4D3E),
-          foregroundColor: Colors.white,
-        ),
       ),
       home: QuranMainScreen(isDarkMode: isDarkMode, onToggleTheme: toggleTheme),
     );
@@ -79,8 +77,9 @@ class _QuranMainScreenState extends State<QuranMainScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(
+      return Scaffold(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
+        body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF1B4D3E)),
         ),
       );
@@ -115,6 +114,7 @@ class _QuranPageState extends State<QuranPagesView> {
   late PageController _pageController;
   late int currentPage;
   int bookmarkedPage = -1;
+  bool showUI = false; // متحكم إظهار وإخفاء الأزرار بالضغط
 
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
@@ -351,9 +351,7 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // ميزة عرض التفسير الميسر للصفحة الحالية (Offline)
   void _openTafseer() {
-    // تحديد اسم السورة القريبة برقم الصفحة
     SurahInfo currentSurah = surahs.lastWhere(
       (s) => s.pageNumber <= currentPage,
       orElse: () => surahs.first,
@@ -398,10 +396,9 @@ class _QuranPageState extends State<QuranPagesView> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
                       'التفسير الميسر - صفحة $currentPage:\n\n'
-                      'تتضمن هذه الصفحة مباركات وآيات كريمات من ${currentSurah.name}.\n\n'
-                      '• بيان معاني الآيات الحكيمة والأحكام الواردة فيها.\n'
-                      '• الحث على تدبر كلام الله تعالى والعمل بما جاء فيه من هدى ونور.\n\n'
-                      '(تم دمج محرك التفسير الميسر ليعمل بدون الحاجة للاتصال بالإنترنت).',
+                      '• بيان معاني الآيات الكريمة والأحكام الواردة في ${currentSurah.name}.\n'
+                      '• تدبر الهدايات القرآنية العظيمة.\n\n'
+                      '(يعمل بدون إنترنت).',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.8,
@@ -418,116 +415,168 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
+  // بناء Page لعرض شرائح المصحف بالكامل حتى سورة الناس
   Widget _buildCompositePage(int pageNum) {
     List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
-    return SingleChildScrollView(
+    return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: sliceIndices.map((sliceIndex) {
-            String normalPath = 'assets/$pageNum.$sliceIndex.png';
-            String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
+      padding: EdgeInsets.zero,
+      itemCount: sliceIndices.length,
+      itemBuilder: (context, index) {
+        int sliceIndex = sliceIndices[index];
+        String normalPath = 'assets/$pageNum.$sliceIndex.png';
 
-            return Image.asset(
-              widget.isDarkMode ? darkPath : normalPath,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                if (widget.isDarkMode) {
-                  return Image.asset(
-                    normalPath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace2) => const SizedBox.shrink(),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            );
-          }).toList(),
-        ),
-      ),
+        Widget imageWidget = Image.asset(
+          normalPath,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+        );
+
+        if (widget.isDarkMode) {
+          return ColorFiltered(
+            colorFilter: const ColorFilter.matrix(<double>[
+              -1.0,  0.0,  0.0, 0.0, 255.0,
+               0.0, -1.0,  0.0, 0.0, 255.0,
+               0.0,  0.0, -1.0, 0.0, 255.0,
+               0.0,  0.0,  0.0, 1.0,   0.0,
+            ]),
+            child: imageWidget,
+          );
+        }
+
+        return imageWidget;
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('صفحة $currentPage من $totalPages'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.list_alt),
-          tooltip: 'الفهرس والأجزاء',
-          onPressed: _openIndex,
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              bookmarkedPage == currentPage ? Icons.bookmark : Icons.bookmark_border,
-              color: bookmarkedPage == currentPage ? Colors.amber : Colors.white,
-            ),
-            tooltip: 'حفظ علامة القراءة',
-            onPressed: _toggleBookmark,
-          ),
-          IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
-            onPressed: widget.onToggleTheme,
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        reverse: true,
-        itemCount: totalPages,
-        onPageChanged: (index) {
-          int page = index + 1;
-          setState(() {
-            currentPage = page;
-          });
-          _saveCurrentPage(page);
-        },
-        itemBuilder: (context, index) {
-          int pageNum = index + 1;
+    SurahInfo currentSurah = surahs.lastWhere(
+      (s) => s.pageNumber <= currentPage,
+      orElse: () => surahs.first,
+    );
 
-          return InteractiveViewer(
-            minScale: 1.0,
-            maxScale: 4.0,
-            child: Container(
-              color: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
-              child: Center(
-                child: _buildCompositePage(pageNum),
-              ),
-            ),
-          );
+    return Scaffold(
+      backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
+      body: GestureDetector(
+        // الضغط على الشاشة يظهر أو يخفي الأزرار والمعلومات تماماً مثل التطبيقات الاحترافية
+        onTap: () {
+          setState(() {
+            showUI = !showUI;
+          });
         },
-      ),
-      bottomNavigationBar: Container(
-        height: 56,
-        color: widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFF1B4D3E),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Stack(
           children: [
-            TextButton.icon(
-              onPressed: _openIndex,
-              icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
-              label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+            // عرض صفحات المصحف
+            PageView.builder(
+              controller: _pageController,
+              reverse: true,
+              itemCount: totalPages,
+              onPageChanged: (index) {
+                int page = index + 1;
+                setState(() {
+                  currentPage = page;
+                });
+                _saveCurrentPage(page);
+              },
+              itemBuilder: (context, index) {
+                int pageNum = index + 1;
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: _buildCompositePage(pageNum),
+                  ),
+                );
+              },
             ),
-            IconButton(
-              icon: const Icon(Icons.auto_stories, color: Colors.white),
-              tooltip: 'التفسير الميسر',
-              onPressed: _openTafseer,
-            ),
-            if (bookmarkedPage != -1)
-              TextButton.icon(
-                onPressed: () {
-                  _pageController.jumpToPage(bookmarkedPage - 1);
-                },
-                icon: const Icon(Icons.bookmark, color: Colors.amber),
-                label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
+
+            // الأشرطة العمانية والسفلية تظهر وتختفي عند اللمس
+            if (showUI) ...[
+              // الشريط العبوي العلوي (رقم الصفحة واسم السورة وأزرار الوضع والماركر)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 4, bottom: 8, left: 12, right: 12),
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.list_alt, color: Colors.white),
+                        tooltip: 'الفهرس',
+                        onPressed: _openIndex,
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            currentSurah.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'صفحة $currentPage من $totalPages',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              bookmarkedPage == currentPage ? Icons.bookmark : Icons.bookmark_border,
+                              color: bookmarkedPage == currentPage ? Colors.amber : Colors.white,
+                            ),
+                            onPressed: _toggleBookmark,
+                          ),
+                          IconButton(
+                            icon: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: Colors.white),
+                            onPressed: widget.onToggleTheme,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
+
+              // الشريط السفلي (التفسير والفهرس وعلامة الحفظ)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 56,
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _openIndex,
+                        icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
+                        label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.auto_stories, color: Colors.white),
+                        tooltip: 'التفسير الميسر',
+                        onPressed: _openTafseer,
+                      ),
+                      if (bookmarkedPage != -1)
+                        TextButton.icon(
+                          onPressed: () {
+                            _pageController.jumpToPage(bookmarkedPage - 1);
+                          },
+                          icon: const Icon(Icons.bookmark, color: Colors.amber),
+                          label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
