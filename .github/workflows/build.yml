@@ -26,6 +26,13 @@ jobs:
       - name: Create Android Platform
         run: flutter create --platforms=android --project-name quran_libya .
 
+      # تحميل ملف الصور مباشرة من الـ Release الخاص بك وفك ضغطه تلقائياً قبل البناء
+      - name: Download and Unzip Assets from Release
+        run: |
+          mkdir -p assets
+          curl -L -o assets.zip "https://github.com/llyby820/quran-libya/releases/download/v1.0.0/assets.zip"
+          unzip -o assets.zip -d assets/
+
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
