@@ -26,13 +26,10 @@ jobs:
       - name: Create Android Platform
         run: flutter create --platforms=android --project-name quran_libya .
 
-      # الطريقة الأحدث والأصح لسحب الملفات الكبيرة من الـ Releases عبر GitHub CLI
-      - name: Download Assets from Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download and Unzip Assets
         run: |
           mkdir -p assets
-          gh release download v1.0.0 --repo llyby820/quran-libya --pattern "assets.zip" --dir . --clobber
+          curl -L -o assets.zip "https://github.com/llyby820/quran-libya/releases/download/v1.0.0/assets.zip"
           unzip -o assets.zip -d assets/
 
       - name: Build Release APK
