@@ -196,7 +196,7 @@ class _QuranPageState extends State<QuranPagesView> {
     SurahInfo("سورة المرسلات", 585, 77),
     SurahInfo("سورة النبأ", 587, 78),
     SurahInfo("سورة النازعات", 589, 79),
-    SurahInfo("سورةعبس", 591, 80),
+    SurahInfo("سورة عبس", 591, 80),
     SurahInfo("سورة التكوير", 592, 81),
     SurahInfo("سورة الانفطار", 593, 82),
     SurahInfo("سورة المطففين", 594, 83),
@@ -423,7 +423,6 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // بناء الصفحة باستخدام 15 شريحة بالضبط المطابقة لمجلد assets
   Widget _buildCompositePage(int pageNum) {
     List<int> sliceIndices = List.generate(15, (index) => index + 1);
 
@@ -557,7 +556,6 @@ class _QuranPageState extends State<QuranPagesView> {
                 ),
               ),
               Positioned(
-                dir: TextDirection.rtl,
                 bottom: 0,
                 left: 0,
                 right: 0,
