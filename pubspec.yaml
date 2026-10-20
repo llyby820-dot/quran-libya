@@ -11,25 +11,13 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.2
-  path_provider: ^2.1.2
-  http: ^1.2.0
-  archive: ^4.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
-
-flutter_launcher_icons:
-  android: "ic_launcher"
-  ios: false
-  image_path: "ic_launcher.png"
-  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
-
-  # أضفنا هذا الجزء لإنشاء المجلد شكلياً وتجنب أي خطأ أثناء البناء
   assets:
     - assets/
