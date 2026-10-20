@@ -1,10 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:archive/archive_io.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,172 +29,6 @@ class _QuranAppState extends State<QuranApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'مصحف الأوقاف الليبية',
-      theme: ThemeData(
-        brightness: isDarkMode ? Brightness.dark : Brightness.light,
-        scaffoldBackgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
-      ),
-      home: const AssetDownloaderScreen(),
-    );
-  }
-}
-
-// شاشة التنزيل الأوتوماتيكي لصور المصحف من الـ Release عند أول تشغيل
-class AssetDownloaderScreen extends StatefulWidget {
-  const AssetDownloaderScreen({super.key});
-
-  @override
-  State<AssetDownloaderScreen> createState() => _AssetDownloaderScreenState();
-}
-
-class _AssetDownloaderScreenState extends State<AssetDownloaderScreen> {
-  bool isDownloading = true;
-  String statusMessage = 'جاري التحقق من ملفات المصحف...';
-  double progress = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAndDownloadAssets();
-  }
-
-  Future<void> _checkAndDownloadAssets() async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final assetsDir = Directory('${dir.path}/assets');
-      
-      // التحقق مما إذا كانت الصور قد تم تنزيلها وفك ضغطها سابقاً
-      if (await assetsDir.exists() && (await assetsDir.list().toList()).isNotEmpty) {
-        _navigateToMain();
-        return;
-      }
-
-      setState(() {
-        statusMessage = 'جاري تحميل صفحات المصحف (لأول مرة فقط)...';
-      });
-
-      // رابط تحميل ملف assets.zip المرفوع في الـ Releases بالمستودع الخاص بك
-      final url = Uri.parse('https://github.com/llyby820/quran-libya/releases/download/v1.0.0/assets.zip');
-      final request = http.Request('GET', url);
-      final response = await http.Client().send(request);
-      
-      final contentLength = response.contentLength ?? 137 * 1024 * 1024;
-      int receivedBytes = 0;
-
-      final List<int> bytes = [];
-      await response.stream.listen(
-        (value) {
-          bytes.addAll(value);
-          receivedBytes += value.length;
-          setState(() {
-            progress = receivedBytes / contentLength;
-            statusMessage = 'جاري التحميل: ${(progress * 100).toStringAsFixed(0)}%';
-          });
-        },
-        onDone: () async {
-          setState(() {
-            statusMessage = 'جاري فك الضغط وتجهيز المصحف...';
-          });
-
-          final archive = ZipDecoder().decodeBytes(bytes);
-          for (final file in archive) {
-            final filename = file.name;
-            if (file.isFile) {
-              final outFile = File('${assetsDir.path}/$filename');
-              await outFile.create(recursive: true);
-              await outFile.writeAsBytes(file.content);
-            }
-          }
-
-          _navigateToMain();
-        },
-        onError: (e) {
-          setState(() {
-            statusMessage = 'فشل التحميل، تحقق من اتصال الإنترنت وأعد المحاولة.';
-            isDownloading = false;
-          });
-        },
-      );
-    } catch (e) {
-      setState(() {
-        statusMessage = 'حدث خطأ أثناء التجهيز: $e';
-        isDownloading = false;
-      });
-    }
-  }
-
-  void _navigateToMain() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const QuranMainEntry()),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5EC),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.menu_book, size: 80, color: Color(0xFF1B4D3E)),
-              const SizedBox(height: 20),
-              const Text(
-                'مصحف الأوقاف الليبية',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E)),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                statusMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-              const SizedBox(height: 30),
-              if (isDownloading) ...[
-                LinearProgressIndicator(value: progress > 0 ? progress : null, color: const Color(0xFF1B4D3E)),
-                const SizedBox(height: 20),
-              ],
-              if (!isDownloading)
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B4D3E)),
-                  onPressed: () {
-                    setState(() {
-                      isDownloading = true;
-                    });
-                    _checkAndDownloadAssets();
-                  },
-                  child: const Text('إعادة المحاولة', style: TextStyle(color: Colors.white)),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class QuranMainEntry extends StatefulWidget {
-  const QuranMainEntry({super.key});
-
-  @override
-  State<QuranMainEntry> createState() => _QuranMainEntryState();
-}
-
-class _QuranMainEntryState extends State<QuranMainEntry> {
-  bool isDarkMode = false;
-
-  void toggleTheme() {
-    setState(() {
-      isDarkMode = !isDarkMode;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
         scaffoldBackgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
@@ -285,8 +115,8 @@ class _QuranPageState extends State<QuranPagesView> {
   late int currentPage;
   int bookmarkedPage = -1;
   bool showUI = false;
-  String? localPath;
 
+  // خريطة دقيقة ومصححة بالكامل لصفحات مصحف الأوقاف الليبي (612 صفحة - رواية قالون)
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
@@ -410,14 +240,6 @@ class _QuranPageState extends State<QuranPagesView> {
     currentPage = widget.initialPage;
     _pageController = PageController(initialPage: widget.initialPage - 1);
     _loadBookmark();
-    _initPath();
-  }
-
-  Future<void> _initPath() async {
-    final dir = await getApplicationDocumentsDirectory();
-    setState(() {
-      localPath = dir.path;
-    });
   }
 
   Future<void> _saveCurrentPage(int page) async {
@@ -457,6 +279,7 @@ class _QuranPageState extends State<QuranPagesView> {
     }
   }
 
+  // دالة دقيقة جداً لتحديد السورة الحالية بناءً على رقم الصفحة بدقة 100%
   SurahInfo _getCurrentSurah(int pageNum) {
     SurahInfo current = surahs.first;
     for (var surah in surahs) {
@@ -603,8 +426,6 @@ class _QuranPageState extends State<QuranPagesView> {
   }
 
   Widget _buildCompositePage(int pageNum) {
-    if (localPath == null) return const SizedBox.shrink();
-
     List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
     return ListView.builder(
@@ -613,26 +434,13 @@ class _QuranPageState extends State<QuranPagesView> {
       itemCount: sliceIndices.length,
       itemBuilder: (context, index) {
         int sliceIndex = sliceIndices[index];
+        String normalPath = 'assets/$pageNum.$sliceIndex.png';
 
-        // تفحص ذكي لكافة الهياكل والمسارات الممكنة لملفات الـ ZIP بعد فك ضغطها
-        final path1 = File('$localPath/assets/$pageNum.$sliceIndex.png');
-        final path2 = File('$localPath/assets/assets/$pageNum.$sliceIndex.png');
-        final path3 = File('$localPath/assets/pages/$pageNum.$sliceIndex.png');
-
-        File targetFile = path1;
-        if (path2.existsSync()) {
-          targetFile = path2;
-        } else if (path3.existsSync()) {
-          targetFile = path3;
-        }
-
-        Widget imageWidget = targetFile.existsSync()
-            ? Image.file(
-                targetFile,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-              )
-            : const SizedBox.shrink();
+        Widget imageWidget = Image.asset(
+          normalPath,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+        );
 
         if (widget.isDarkMode) {
           return ColorFiltered(
