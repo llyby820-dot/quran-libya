@@ -23,11 +23,17 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      # 1. جلب الحزم الخاصة بمشروعك الأصلي كما هي دون إعادة إنشاء
-      - name: Install Dependencies
-        run: flutter pub get
+      # 1. إنشاء هيكل أندرويد أولاً لتتفرع منه جميع الملفات والـ AndroidManifest.xml
+      - name: Create Android Platform
+        run: flutter create --platforms=android --project-name quran_libya .
 
-      # 2. توليد الأيقونة ووضعها في مكانها الصحيح في أندرويد
+      # 2. جلب الحزم وتثبيت أداة الأيقونات
+      - name: Install Dependencies & Icon Tool
+        run: |
+          flutter pub get
+          flutter pub add dev:flutter_launcher_icons
+
+      # 3. توليد الأيقونة بالصورة المطلوبة
       - name: Generate App Icon
         run: |
           cat <<EOF > flutter_launcher_icons.yaml
@@ -37,14 +43,13 @@ jobs:
             image_path: "ic_launcher.png"
             min_sdk_android: 21
           EOF
-          flutter pub add dev:flutter_launcher_icons
           dart run flutter_launcher_icons
 
-      # 3. بناء ملف الـ APK الأصلي للمشروع بالكامل مع أصول المصحف كاملة
+      # 4. بناء الـ APK بصيغة Release
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      # 4. رفع الملف النهائي
+      # 5. رفع الملف الناتج
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
