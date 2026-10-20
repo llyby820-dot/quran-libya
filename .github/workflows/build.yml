@@ -26,13 +26,13 @@ jobs:
       - name: Create Android Platform
         run: flutter create --platforms=android --project-name quran_libya .
 
-      # تنزيل ملف الصور بالأداة الرسمية الموثوقة مع صلاحيات التوثيق
-      - name: Download and Unzip Assets from Release
+      # سحب ملف assets.zip رسمياً من الـ Release عبر أداة GitHub CLI المدمجة
+      - name: Download Assets from Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p assets
-          gh release download v1.0.0 --pattern "assets.zip" --dir .
+          gh release download v1.0.0 --repo llyby820/quran-libya --pattern "assets.zip" --dir .
           unzip -o assets.zip -d assets/
 
       - name: Build Release APK
