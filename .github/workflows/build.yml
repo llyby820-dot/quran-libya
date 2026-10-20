@@ -24,7 +24,7 @@ jobs:
           channel: 'stable'
 
       - name: Recreate Android Project Files
-        run: flutter create --platforms=android .
+        run: flutter create --platforms=android --project-name quran_libya .
 
       - name: Copy App Icon to Android Resources
         run: |
