@@ -110,11 +110,12 @@ class QuranPagesView extends StatefulWidget {
 }
 
 class _QuranPageState extends State<QuranPagesView> {
-  final int totalPages = 604;
+  // تم ضبط إجمالي الصفحات لتصل إلى 612 تغطية كاملة لمصحف الأوقاف الليبية حتى سورة الناس
+  final int totalPages = 612;
   late PageController _pageController;
   late int currentPage;
   int bookmarkedPage = -1;
-  bool showUI = false; // متحكم إظهار وإخفاء الأزرار بالضغط
+  bool showUI = false;
 
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
@@ -395,9 +396,8 @@ class _QuranPageState extends State<QuranPagesView> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
-                      'التفسير الميسر - صفحة $currentPage:\n\n'
-                      '• بيان معاني الآيات الكريمة والأحكام الواردة في ${currentSurah.name}.\n'
-                      '• تدبر الهدايات القرآنية العظيمة.\n\n'
+                      'تفسير صفحة $currentPage من ${currentSurah.name}:\n\n'
+                      '• بيان معاني الآيات العظيمة والأحكام الواردة في هذه الصفحة المباركة.\n\n'
                       '(يعمل بدون إنترنت).',
                       style: TextStyle(
                         fontSize: 16,
@@ -415,7 +415,6 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // بناء Page لعرض شرائح المصحف بالكامل حتى سورة الناس
   Widget _buildCompositePage(int pageNum) {
     List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
@@ -460,7 +459,6 @@ class _QuranPageState extends State<QuranPagesView> {
     return Scaffold(
       backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
       body: GestureDetector(
-        // الضغط على الشاشة يظهر أو يخفي الأزرار والمعلومات تماماً مثل التطبيقات الاحترافية
         onTap: () {
           setState(() {
             showUI = !showUI;
@@ -468,7 +466,6 @@ class _QuranPageState extends State<QuranPagesView> {
         },
         child: Stack(
           children: [
-            // عرض صفحات المصحف
             PageView.builder(
               controller: _pageController,
               reverse: true,
@@ -491,10 +488,7 @@ class _QuranPageState extends State<QuranPagesView> {
                 );
               },
             ),
-
-            // الأشرطة العمانية والسفلية تظهر وتختفي عند اللمس
             if (showUI) ...[
-              // الشريط العبوي العلوي (رقم الصفحة واسم السورة وأزرار الوضع والماركر)
               Positioned(
                 top: 0,
                 left: 0,
@@ -542,8 +536,6 @@ class _QuranPageState extends State<QuranPagesView> {
                   ),
                 ),
               ),
-
-              // الشريط السفلي (التفسير والفهرس وعلامة الحفظ)
               Positioned(
                 bottom: 0,
                 left: 0,
