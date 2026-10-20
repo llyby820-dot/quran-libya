@@ -116,7 +116,6 @@ class _QuranPageState extends State<QuranPagesView> {
   int bookmarkedPage = -1;
   bool showUI = false;
 
-  // خريطة دقيقة ومصححة بالكامل لصفحات مصحف الأوقاف الليبي (612 صفحة - رواية قالون)
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
@@ -279,7 +278,6 @@ class _QuranPageState extends State<QuranPagesView> {
     }
   }
 
-  // دالة دقيقة جداً لتحديد السورة الحالية بناءً على رقم الصفحة بدقة 100%
   SurahInfo _getCurrentSurah(int pageNum) {
     SurahInfo current = surahs.first;
     for (var surah in surahs) {
@@ -486,4 +484,99 @@ class _QuranPageState extends State<QuranPagesView> {
               },
               itemBuilder: (context, index) {
                 int pageNum = index + 1;
-                
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: _buildCompositePage(pageNum),
+                  ),
+                );
+              },
+            ),
+            if (showUI) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 4, bottom: 8, left: 12, right: 12),
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.list_alt, color: Colors.white),
+                        tooltip: 'الفهرس',
+                        onPressed: _openIndex,
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            currentSurah.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'صفحة $currentPage من $totalPages',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              bookmarkedPage == currentPage ? Icons.bookmark : Icons.bookmark_border,
+                              color: bookmarkedPage == currentPage ? Colors.amber : Colors.white,
+                            ),
+                            onPressed: _toggleBookmark,
+                          ),
+                          IconButton(
+                            icon: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: Colors.white),
+                            onPressed: widget.onToggleTheme,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 56,
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _openIndex,
+                        icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
+                        label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.auto_stories, color: Colors.white),
+                        tooltip: 'التفسير الميسر',
+                        onPressed: _openTafseer,
+                      ),
+                      if (bookmarkedPage != -1)
+                        TextButton.icon(
+                          onPressed: () {
+                            _pageController.jumpToPage(bookmarkedPage - 1);
+                          },
+                          icon: const Icon(Icons.bookmark, color: Colors.amber),
+                          label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
