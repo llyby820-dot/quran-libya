@@ -23,17 +23,6 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Create Android Platform
-        run: flutter create --platforms=android --project-name quran_libya .
-
-      # إضافة إذن الإنترنت تلقائياً لملف AndroidManifest.xml أثناء البناء
-      - name: Add Internet Permission
-        run: |
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST_PATH" ]; then
-            sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <application/' "$MANIFEST_PATH"
-          fi
-
       - name: Generate App Icon
         run: |
           cat <<EOF > flutter_launcher_icons.yaml
