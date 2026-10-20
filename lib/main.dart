@@ -116,7 +116,6 @@ class _QuranPageState extends State<QuranPagesView> {
   int bookmarkedPage = -1;
   bool showUI = false;
 
-  // خريطة دقيقة ومصححة بالكامل لصفحات مصحف الأوقاف الليبي (612 صفحة - رواية قالون)
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
@@ -279,7 +278,6 @@ class _QuranPageState extends State<QuranPagesView> {
     }
   }
 
-  // دالة دقيقة جداً لتحديد السورة الحالية بناءً على رقم الصفحة بدقة 100%
   SurahInfo _getCurrentSurah(int pageNum) {
     SurahInfo current = surahs.first;
     for (var surah in surahs) {
@@ -544,6 +542,7 @@ class _QuranPageState extends State<QuranPagesView> {
                 ),
               ),
               Positioned(
+                dir: TextDirection.rtl,
                 bottom: 0,
                 left: 0,
                 right: 0,
