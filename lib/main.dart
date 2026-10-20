@@ -196,7 +196,7 @@ class _QuranPageState extends State<QuranPagesView> {
     SurahInfo("سورة المرسلات", 585, 77),
     SurahInfo("سورة النبأ", 587, 78),
     SurahInfo("سورة النازعات", 589, 79),
-    SurahInfo("سورة عبس", 591, 80),
+    SurahInfo("سورةعبس", 591, 80),
     SurahInfo("سورة التكوير", 592, 81),
     SurahInfo("سورة الانفطار", 593, 82),
     SurahInfo("سورة المطففين", 594, 83),
@@ -423,8 +423,9 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
+  // بناء الصفحة باستخدام 15 شريحة بالضبط المطابقة لمجلد assets
   Widget _buildCompositePage(int pageNum) {
-    List<int> sliceIndices = List.generate(30, (index) => index + 1);
+    List<int> sliceIndices = List.generate(15, (index) => index + 1);
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
@@ -432,23 +433,37 @@ class _QuranPageState extends State<QuranPagesView> {
       itemCount: sliceIndices.length,
       itemBuilder: (context, index) {
         int sliceIndex = sliceIndices[index];
+
+        String darkPath = 'assets/$pageNum.${sliceIndex}_dark.png';
         String normalPath = 'assets/$pageNum.$sliceIndex.png';
 
-        Widget imageWidget = Image.asset(
-          normalPath,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-        );
+        Widget imageWidget;
 
         if (widget.isDarkMode) {
-          return ColorFiltered(
-            colorFilter: const ColorFilter.matrix(<double>[
-              -1.0,  0.0,  0.0, 0.0, 255.0,
-               0.0, -1.0,  0.0, 0.0, 255.0,
-               0.0,  0.0, -1.0, 0.0, 255.0,
-               0.0,  0.0,  0.0, 1.0,   0.0,
-            ]),
-            child: imageWidget,
+          imageWidget = Image.asset(
+            darkPath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return ColorFiltered(
+                colorFilter: const ColorFilter.matrix(<double>[
+                  -1.0,  0.0,  0.0, 0.0, 255.0,
+                   0.0, -1.0,  0.0, 0.0, 255.0,
+                   0.0,  0.0, -1.0, 0.0, 255.0,
+                   0.0,  0.0,  0.0, 1.0,   0.0,
+                ]),
+                child: Image.asset(
+                  normalPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                ),
+              );
+            },
+          );
+        } else {
+          imageWidget = Image.asset(
+            normalPath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
           );
         }
 
