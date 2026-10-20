@@ -26,7 +26,7 @@ jobs:
       - name: Create Android Platform
         run: flutter create --platforms=android --project-name quran_libya .
 
-      # خطوة تنزيل ملف الصور المضغوط من Release وفك ضغطه داخل مجلد assets تلقائياً قبل البناء
+      # تنزيل ملف الصور وفك ضغطه داخل مجلد assets تلقائياً
       - name: Download and Unzip Assets
         run: |
           mkdir -p assets
