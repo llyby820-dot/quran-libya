@@ -615,8 +615,8 @@ class _QuranPageState extends State<QuranPagesView> {
       itemCount: sliceIndices.length,
       itemBuilder: (context, index) {
         int sliceIndex = sliceIndices[index];
-        // قراءة الصور من التخزين المحلي في الهاتف بعد فك الضغط
-        final file = File('$localPath/assets/assets/$pageNum.$sliceIndex.png');
+        // المسار المباشر والمصحح لقراءة الصور من التخزين المحلي
+        final file = File('$localPath/assets/$pageNum.$sliceIndex.png');
 
         Widget imageWidget = file.existsSync()
             ? Image.file(
