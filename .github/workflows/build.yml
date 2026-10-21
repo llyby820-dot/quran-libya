@@ -1,0 +1,46 @@
+name: Build Android Release APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Download & Extract Assets from Release
+        run: |
+          echo "Downloading assets.zip..."
+          curl -L -o assets.zip https://github.com/${{ github.repository }}/releases/download/v1.0.0/assets.zip
+          echo "Extracting assets..."
+          unzip -q assets.zip -d .
+          ls -la assets/ | head -n 20
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: quran-app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
