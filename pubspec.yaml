@@ -1,5 +1,5 @@
-name: quran_libya
-description: "تطبيق مصحف الأوقاف الليبية"
+name: quran_awqaf_libya
+description: "مصحف الأوقاف الليبية برواية قالون"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,8 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
-  shared_preferences: ^2.2.3
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -21,6 +20,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # تعريف مجلد الأصول لضمان دمج صور صفحات المصحف بالكامل داخل التطبيق
   assets:
     - assets/
-    - ic_launcher.png
+    - assets/pages/
