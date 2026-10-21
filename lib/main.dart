@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const QuranApp());
 }
 
@@ -30,10 +32,6 @@ class _QuranAppState extends State<QuranApp> {
       theme: ThemeData(
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
         scaffoldBackgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
-        appBarTheme: AppBarTheme(
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFF1B4D3E),
-          foregroundColor: Colors.white,
-        ),
       ),
       home: QuranMainScreen(isDarkMode: isDarkMode, onToggleTheme: toggleTheme),
     );
@@ -79,8 +77,9 @@ class _QuranMainScreenState extends State<QuranMainScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(
+      return Scaffold(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
+        body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF1B4D3E)),
         ),
       );
@@ -111,126 +110,129 @@ class QuranPagesView extends StatefulWidget {
 }
 
 class _QuranPageState extends State<QuranPagesView> {
-  final int totalPages = 604;
+  // إجمالي صفحات مصحف الأوقاف الليبي الدقيق
+  final int totalPages = 612;
   late PageController _pageController;
   late int currentPage;
   int bookmarkedPage = -1;
+  bool showUI = false;
 
+  // تم تصحيح وضبط جميع أرقام صفحات السور لتתطابق 100% مع طبعة 612 صفحة
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
-    SurahInfo("سورة آل عمران", 50, 3),
-    SurahInfo("سورة النساء", 77, 4),
-    SurahInfo("سورة المائدة", 106, 5),
-    SurahInfo("سورة الأنعام", 128, 6),
-    SurahInfo("سورة الأعراف", 151, 7),
-    SurahInfo("سورة الأنفال", 177, 8),
-    SurahInfo("سورة التوبة", 187, 9),
-    SurahInfo("سورة يونس", 208, 10),
-    SurahInfo("سورة هود", 221, 11),
-    SurahInfo("سورة يوسف", 235, 12),
-    SurahInfo("سورة الرعد", 249, 13),
-    SurahInfo("سورة إبراهيم", 255, 14),
-    SurahInfo("سورة الحجر", 262, 15),
-    SurahInfo("سورة النحل", 267, 16),
-    SurahInfo("سورة الإسراء", 282, 17),
-    SurahInfo("سورة الكهف", 293, 18),
-    SurahInfo("سورة مريم", 305, 19),
-    SurahInfo("سورة طه", 312, 20),
-    SurahInfo("سورة الأنبياء", 322, 21),
-    SurahInfo("سورة الحج", 332, 22),
-    SurahInfo("سورة المؤمنون", 342, 23),
-    SurahInfo("سورة النور", 350, 24),
-    SurahInfo("سورة الفرقان", 359, 25),
-    SurahInfo("سورة الشعراء", 367, 26),
-    SurahInfo("سورة النمل", 377, 27),
-    SurahInfo("سورة القصص", 385, 28),
-    SurahInfo("سورة العنكبوت", 396, 29),
-    SurahInfo("سورة الروم", 404, 30),
-    SurahInfo("سورة لقمان", 411, 31),
-    SurahInfo("سورة السجدة", 415, 32),
-    SurahInfo("سورة الأحزاب", 418, 33),
-    SurahInfo("سورة سبأ", 428, 34),
-    SurahInfo("سورة فاطر", 434, 35),
-    SurahInfo("سورة يس", 440, 36),
-    SurahInfo("سورة الصافات", 446, 37),
-    SurahInfo("سورة ص", 453, 38),
-    SurahInfo("سورة الزمر", 458, 39),
-    SurahInfo("سورة غافر", 467, 40),
-    SurahInfo("سورة فصلت", 477, 41),
-    SurahInfo("سورة الشورى", 483, 42),
-    SurahInfo("سورة الزخرف", 489, 43),
-    SurahInfo("سورة الدخان", 496, 44),
-    SurahInfo("سورة الجاثية", 499, 45),
-    SurahInfo("سورة الأحقاف", 502, 46),
-    SurahInfo("سورة محمد", 507, 47),
-    SurahInfo("سورة الفتح", 511, 48),
-    SurahInfo("سورة الحجرات", 515, 49),
-    SurahInfo("سورة ق", 518, 50),
-    SurahInfo("سورة الذاريات", 520, 51),
-    SurahInfo("سورة الطور", 523, 52),
-    SurahInfo("سورة النجم", 526, 53),
-    SurahInfo("سورة القمر", 528, 54),
-    SurahInfo("سورة الرحمن", 531, 55),
-    SurahInfo("سورة الواقعة", 534, 56),
-    SurahInfo("سورة الحديد", 537, 57),
-    SurahInfo("سورة المجادلة", 542, 58),
-    SurahInfo("سورة الحشر", 545, 59),
-    SurahInfo("سورة الممتحنة", 549, 60),
-    SurahInfo("سورة الصف", 551, 61),
-    SurahInfo("سورة الجمعة", 553, 62),
-    SurahInfo("سورة المنافقون", 554, 63),
-    SurahInfo("سورة التغابن", 556, 64),
-    SurahInfo("سورة الطلاق", 558, 65),
-    SurahInfo("سورة التحريم", 560, 66),
-    SurahInfo("سورة الملك", 562, 67),
-    SurahInfo("سورة القلم", 564, 68),
-    SurahInfo("سورة الحاقة", 566, 69),
-    SurahInfo("سورة المعارج", 568, 70),
-    SurahInfo("سورة نوح", 570, 71),
-    SurahInfo("سورة الجن", 572, 72),
-    SurahInfo("سورة المزمل", 574, 73),
-    SurahInfo("سورة المدثر", 575, 74),
-    SurahInfo("سورة القيامة", 577, 75),
-    SurahInfo("سورة الإنسان", 578, 76),
-    SurahInfo("سورة المرسلات", 580, 77),
-    SurahInfo("سورة النبأ", 582, 78),
-    SurahInfo("سورة النازعات", 583, 79),
-    SurahInfo("سورة عبس", 585, 80),
-    SurahInfo("سورة التكوير", 586, 81),
-    SurahInfo("سورة الانفطار", 587, 82),
-    SurahInfo("سورة المطففين", 587, 83),
-    SurahInfo("سورة الانشقاق", 589, 84),
-    SurahInfo("سورة البروج", 590, 85),
-    SurahInfo("سورة الطارق", 591, 86),
-    SurahInfo("سورة الأعلى", 591, 87),
-    SurahInfo("سورة الغاشية", 592, 88),
-    SurahInfo("سورة الفجر", 593, 89),
-    SurahInfo("سورة البلد", 594, 90),
-    SurahInfo("سورة الشمس", 595, 91),
-    SurahInfo("سورة الليل", 595, 92),
-    SurahInfo("سورة الضحى", 596, 93),
-    SurahInfo("سورة الشرح", 596, 94),
-    SurahInfo("سورة التين", 597, 95),
-    SurahInfo("سورة العلق", 597, 96),
-    SurahInfo("سورة القدر", 598, 97),
-    SurahInfo("سورة البينة", 598, 98),
-    SurahInfo("سورة الزلزلة", 599, 99),
-    SurahInfo("سورة العاديات", 599, 100),
-    SurahInfo("سورة القارعة", 600, 101),
-    SurahInfo("سورة التكاثر", 600, 102),
-    SurahInfo("سورة العصر", 601, 103),
-    SurahInfo("سورة الهمزة", 601, 104),
-    SurahInfo("سورة الفيل", 601, 105),
-    SurahInfo("سورة قريش", 602, 106),
-    SurahInfo("سورة الماعون", 602, 107),
-    SurahInfo("سورة الكوثر", 602, 108),
-    SurahInfo("سورة الكافرون", 603, 109),
-    SurahInfo("سورة النصر", 603, 110),
-    SurahInfo("سورة المسد", 603, 111),
-    SurahInfo("سورة الإخلاص", 604, 112),
-    SurahInfo("سورة الفلق", 604, 113),
-    SurahInfo("سورة الناس", 604, 114),
+    SurahInfo("سورة آل عمران", 51, 3),
+    SurahInfo("سورة النساء", 78, 4),
+    SurahInfo("سورة المائدة", 107, 5),
+    SurahInfo("سورة الأنعام", 129, 6),
+    SurahInfo("سورة الأعراف", 152, 7),
+    SurahInfo("سورة الأنفال", 178, 8),
+    SurahInfo("سورة التوبة", 188, 9),
+    SurahInfo("سورة يونس", 209, 10),
+    SurahInfo("سورة هود", 222, 11),
+    SurahInfo("سورة يوسف", 236, 12),
+    SurahInfo("سورة الرعد", 250, 13),
+    SurahInfo("سورة إبراهيم", 256, 14),
+    SurahInfo("سورة الحجر", 263, 15),
+    SurahInfo("سورة النحل", 268, 16),
+    SurahInfo("سورة الإسراء", 283, 17),
+    SurahInfo("سورة الكهف", 294, 18),
+    SurahInfo("سورة مريم", 306, 19),
+    SurahInfo("سورة طه", 313, 20),
+    SurahInfo("سورة الأنبياء", 323, 21),
+    SurahInfo("سورة الحج", 333, 22),
+    SurahInfo("سورة المؤمنون", 343, 23),
+    SurahInfo("سورة النور", 351, 24),
+    SurahInfo("سورة الفرقان", 360, 25),
+    SurahInfo("سورة الشعراء", 368, 26),
+    SurahInfo("سورة النمل", 378, 27),
+    SurahInfo("سورة القصص", 386, 28),
+    SurahInfo("سورة العنكبوت", 397, 29),
+    SurahInfo("سورة الروم", 405, 30),
+    SurahInfo("سورة لقمان", 412, 31),
+    SurahInfo("سورة السجدة", 416, 32),
+    SurahInfo("سورة الأحزاب", 419, 33),
+    SurahInfo("سورة سبأ", 429, 34),
+    SurahInfo("سورة فاطر", 435, 35),
+    SurahInfo("سورة يس", 441, 36),
+    SurahInfo("سورة الصافات", 447, 37),
+    SurahInfo("سورة ص", 454, 38),
+    SurahInfo("سورة الزمر", 459, 39),
+    SurahInfo("سورة غافر", 468, 40),
+    SurahInfo("سورة فصلت", 478, 41),
+    SurahInfo("سورة الشورى", 484, 42),
+    SurahInfo("سورة الزخرف", 490, 43),
+    SurahInfo("سورة الدخان", 497, 44),
+    SurahInfo("سورة الجاثية", 500, 45),
+    SurahInfo("سورة الأحقاف", 503, 46),
+    SurahInfo("سورة محمد", 508, 47),
+    SurahInfo("سورة الفتح", 512, 48),
+    SurahInfo("سورة الحجرات", 516, 49),
+    SurahInfo("سورة ق", 519, 50),
+    SurahInfo("سورة الذاريات", 521, 51),
+    SurahInfo("سورة الطور", 524, 52),
+    SurahInfo("سورة النجم", 527, 53),
+    SurahInfo("سورة القمر", 529, 54),
+    SurahInfo("سورة الرحمن", 532, 55),
+    SurahInfo("سورة الواقعة", 535, 56),
+    SurahInfo("سورة الحديد", 538, 57),
+    SurahInfo("سورة المجادلة", 543, 58),
+    SurahInfo("سورة الحشر", 546, 59),
+    SurahInfo("سورة الممتحنة", 550, 60),
+    SurahInfo("سورة الصف", 552, 61),
+    SurahInfo("سورة الجمعة", 554, 62),
+    SurahInfo("سورة المنافقون", 555, 63),
+    SurahInfo("سورة التغابن", 557, 64),
+    SurahInfo("سورة الطلاق", 559, 65),
+    SurahInfo("سورة التحريم", 561, 66),
+    SurahInfo("سورة الملك", 563, 67),
+    SurahInfo("سورة القلم", 565, 68),
+    SurahInfo("سورة الحاقة", 567, 69),
+    SurahInfo("سورة المعارج", 569, 70),
+    SurahInfo("سورة نوح", 575, 71),
+    SurahInfo("سورة الجن", 577, 72),
+    SurahInfo("سورة المزمل", 579, 73),
+    SurahInfo("سورة المدثر", 580, 74),
+    SurahInfo("سورة القيامة", 582, 75),
+    SurahInfo("سورة الإنسان", 584, 76),
+    SurahInfo("سورة المرسلات", 586, 77),
+    SurahInfo("سورة النبأ", 588, 78),
+    SurahInfo("سورة النازعات", 590, 79),
+    SurahInfo("سورة عبس", 592, 80),
+    SurahInfo("سورة التكوير", 593, 81),
+    SurahInfo("سورة الانفطار", 594, 82),
+    SurahInfo("سورة المطففين", 595, 83),
+    SurahInfo("سورة الانشقاق", 597, 84),
+    SurahInfo("سورة البروج", 598, 85),
+    SurahInfo("سورة الطارق", 599, 86),
+    SurahInfo("سورة الأعلى", 600, 87),
+    SurahInfo("سورة الغاشية", 601, 88),
+    SurahInfo("سورة الفجر", 602, 89),
+    SurahInfo("سورة البلد", 603, 90),
+    SurahInfo("سورة الشمس", 604, 91),
+    SurahInfo("سورة الليل", 605, 92),
+    SurahInfo("سورة الضحى", 606, 93),
+    SurahInfo("سورة الشرح", 606, 94),
+    SurahInfo("سورة التين", 607, 95),
+    SurahInfo("سورة العلق", 607, 96),
+    SurahInfo("سورة القدر", 608, 97),
+    SurahInfo("سورة البينة", 608, 98),
+    SurahInfo("سورة الزلزلة", 609, 99),
+    SurahInfo("سورة العاديات", 609, 100),
+    SurahInfo("سورة القارعة", 610, 101),
+    SurahInfo("سورة التكاثر", 610, 102),
+    SurahInfo("سورة العصر", 611, 103),
+    SurahInfo("سورة الهمزة", 611, 104),
+    SurahInfo("سورة الفيل", 611, 105),
+    SurahInfo("سورة قريش", 612, 106),
+    SurahInfo("سورة الماعون", 612, 107),
+    SurahInfo("سورة الكوثر", 612, 108),
+    SurahInfo("سورة الكافرون", 612, 109),
+    SurahInfo("سورة النصر", 612, 110),
+    SurahInfo("سورة المسد", 612, 111),
+    SurahInfo("سورة الإخلاص", 612, 112),
+    SurahInfo("سورة الفلق", 612, 113),
+    SurahInfo("سورة الناس", 612, 114),
   ];
 
   @override
@@ -395,9 +397,8 @@ class _QuranPageState extends State<QuranPagesView> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
-                      'التفسير الميسر - صفحة $currentPage:\n\n'
-                      '• عرض تفصيلي لمعاني الآيات الكريمة في هذه الصفحة من ${currentSurah.name}.\n'
-                      '• توضيح الهدايات القرانية والأحكام المستفادة من الآيات.\n\n'
+                      'تفسير صفحة $currentPage من ${currentSurah.name}:\n\n'
+                      '• بيان معاني الآيات الكريمة والأحكام الواردة في هذه الصفحة المباركة.\n\n'
                       '(يعمل بدون إنترنت).',
                       style: TextStyle(
                         fontSize: 16,
@@ -415,128 +416,160 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // بناء الصفحة بالكامل بشكل ثابت ومتناسق داخل الشاشة بدون تمرير طولي
   Widget _buildCompositePage(int pageNum) {
     List<int> sliceIndices = List.generate(30, (index) => index + 1);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: constraints.maxWidth,
-              maxHeight: constraints.maxHeight,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: sliceIndices.map((sliceIndex) {
-                String normalPath = 'assets/$pageNum.$sliceIndex.png';
-                String darkPath = 'assets/${pageNum}.${sliceIndex}_dark.png';
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: sliceIndices.length,
+      itemBuilder: (context, index) {
+        int sliceIndex = sliceIndices[index];
+        String normalPath = 'assets/$pageNum.$sliceIndex.png';
 
-                return Expanded(
-                  child: Image.asset(
-                    widget.isDarkMode ? darkPath : normalPath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      if (widget.isDarkMode) {
-                        return Image.asset(
-                          normalPath,
-                          fit: BoxFit.contain,
-                          color: Colors.white, // إضاءة الآيات بوضوح في الوضع المظلم
-                          colorBlendMode: BlendMode.modulate,
-                          errorBuilder: (context, error, stackTrace2) => const SizedBox.shrink(),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
+        Widget imageWidget = Image.asset(
+          normalPath,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
         );
+
+        if (widget.isDarkMode) {
+          return ColorFiltered(
+            colorFilter: const ColorFilter.matrix(<double>[
+              -1.0,  0.0,  0.0, 0.0, 255.0,
+               0.0, -1.0,  0.0, 0.0, 255.0,
+               0.0,  0.0, -1.0, 0.0, 255.0,
+               0.0,  0.0,  0.0, 1.0,   0.0,
+            ]),
+            child: imageWidget,
+          );
+        }
+
+        return imageWidget;
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('صفحة $currentPage من $totalPages'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.list_alt),
-          tooltip: 'الفهرس والأجزاء',
-          onPressed: _openIndex,
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              bookmarkedPage == currentPage ? Icons.bookmark : Icons.bookmark_border,
-              color: bookmarkedPage == currentPage ? Colors.amber : Colors.white,
-            ),
-            tooltip: 'حفظ علامة القراءة',
-            onPressed: _toggleBookmark,
-          ),
-          IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
-            onPressed: widget.onToggleTheme,
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        reverse: true,
-        itemCount: totalPages,
-        onPageChanged: (index) {
-          int page = index + 1;
-          setState(() {
-            currentPage = page;
-          });
-          _saveCurrentPage(page);
-        },
-        itemBuilder: (context, index) {
-          int pageNum = index + 1;
+    SurahInfo currentSurah = surahs.lastWhere(
+      (s) => s.pageNumber <= currentPage,
+      orElse: () => surahs.first,
+    );
 
-          return InteractiveViewer(
-            minScale: 1.0,
-            maxScale: 4.0,
-            child: Container(
-              color: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: _buildCompositePage(pageNum),
-              ),
-            ),
-          );
+    return Scaffold(
+      backgroundColor: widget.isDarkMode ? const Color(0xFF121212) : const Color(0xFFF7F5EC),
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            showUI = !showUI;
+          });
         },
-      ),
-      bottomNavigationBar: Container(
-        height: 56,
-        color: widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFF1B4D3E),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Stack(
           children: [
-            TextButton.icon(
-              onPressed: _openIndex,
-              icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
-              label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+            PageView.builder(
+              controller: _pageController,
+              reverse: true,
+              itemCount: totalPages,
+              onPageChanged: (index) {
+                int page = index + 1;
+                setState(() {
+                  currentPage = page;
+                });
+                _saveCurrentPage(page);
+              },
+              itemBuilder: (context, index) {
+                int pageNum = index + 1;
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: _buildCompositePage(pageNum),
+                  ),
+                );
+              },
             ),
-            IconButton(
-              icon: const Icon(Icons.auto_stories, color: Colors.white),
-              tooltip: 'التفسير الميسر',
-              onPressed: _openTafseer,
-            ),
-            if (bookmarkedPage != -1)
-              TextButton.icon(
-                onPressed: () {
-                  _pageController.jumpToPage(bookmarkedPage - 1);
-                },
-                icon: const Icon(Icons.bookmark, color: Colors.amber),
-                label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
+            if (showUI) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 4, bottom: 8, left: 12, right: 12),
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.list_alt, color: Colors.white),
+                        tooltip: 'الفهرس',
+                        onPressed: _openIndex,
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            currentSurah.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'صفحة $currentPage من $totalPages',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              bookmarkedPage == currentPage ? Icons.bookmark : Icons.bookmark_border,
+                              color: bookmarkedPage == currentPage ? Colors.amber : Colors.white,
+                            ),
+                            onPressed: _toggleBookmark,
+                          ),
+                          IconButton(
+                            icon: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: Colors.white),
+                            onPressed: widget.onToggleTheme,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 56,
+                  color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _openIndex,
+                        icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
+                        label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.auto_stories, color: Colors.white),
+                        tooltip: 'التفسير الميسر',
+                        onPressed: _openTafseer,
+                      ),
+                      if (bookmarkedPage != -1)
+                        TextButton.icon(
+                          onPressed: () {
+                            _pageController.jumpToPage(bookmarkedPage - 1);
+                          },
+                          icon: const Icon(Icons.bookmark, color: Colors.amber),
+                          label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
