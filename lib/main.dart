@@ -54,6 +54,15 @@ class HizbInfo {
   HizbInfo(this.number, this.name, this.pageNumber);
 }
 
+// نموذج بيانات التفسير للآيات
+class VerseTafseer {
+  final String verseText;
+  final int verseNumber;
+  final String tafseerText;
+
+  VerseTafseer({required this.verseText, required this.verseNumber, required this.tafseerText});
+}
+
 class QuranMainScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
@@ -61,10 +70,10 @@ class QuranMainScreen extends StatefulWidget {
   const QuranMainScreen({super.key, required this.isDarkMode, required this.onToggleTheme});
 
   @override
-  State<QuranMainScreen> createState() => _QuranMainScreenState();
+  State<QuranMainScreen> createState() => _QuranMainScreenScreenState();
 }
 
-class _QuranMainScreenState extends State<QuranMainScreen> {
+class _QuranMainScreenScreenState extends State<QuranMainScreen> {
   int savedPage = 1;
   bool isLoading = true;
 
@@ -127,7 +136,6 @@ class _QuranPageState extends State<QuranPagesView> {
   String? hizbNotificationText;
   bool showHizbNotification = false;
 
-  // جدول الأحزاب الـ 60 الدقيقة والمطابقة بالكامل لمصحف الأوقاف الليبي
   final List<HizbInfo> hizbs = [
     HizbInfo(1, "سورة البقرة", 1),
     HizbInfo(2, "وإذا لقوا", 11),
@@ -460,11 +468,26 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
+  // واجهة التفسير المحدثة والمصممة خصيصاً لتشابه الصور المرفقة (بطاقات آيات + تفسير + نسخ ومشاركة)
   void _openTafseer() {
     SurahInfo currentSurah = surahs.lastWhere(
       (s) => s.pageNumber <= currentPage,
       orElse: () => surahs.first,
     );
+
+    // عينة بيانات (Mock Data) للآيات وتفسيرها لهذه الصفحة (قابلة للاستبدال لاحقاً بقاعدة بيانات)
+    List<VerseTafseer> pageVerses = [
+      VerseTafseer(
+        verseText: "إِنَّ الَّذِينَ يَفْتَرُونَ عَلَى اللَّهِ الكَذِبَ لَا يُؤْمِنُونَ بِآيَاتِ اللَّهِ وَأُولَٰئِكَ هُمُ الكَاذِبُونَ",
+        verseNumber: 105,
+        tafseerText: "إنما يختلِق الكذبَ من لا يؤمن بالله وآياته، وأولئك هم الكاذبون في قولهم ذلك، أما محمد صلى الله عليه وسلم المؤمن بربه الخاضع له فمحال أن يكذب على الله، ويقول عليه ما لم يقل.",
+      ),
+      VerseTafseer(
+        verseText: "وَمَن كَفَرَ بِاللَّهِ مِن بَعْدِ إِيمَانِهِ إِلَّا مَنْ أُكْرِهَ وَقَلْبُهُ مُطْمَئِنُّ بِالإِيمَانِ",
+        verseNumber: 106,
+        tafseerText: "بيان حكم من ارتد عن الإسلام مكرهًا ومن ارتد طائعًا، وفضل ثبات القلب على الإيمان وقت الفتن.",
+      ),
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -475,21 +498,28 @@ class _QuranPageState extends State<QuranPagesView> {
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(20),
-          height: MediaQuery.of(context).size.height * 0.65,
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // الهيدر الخاص بالتفسير واختيار السورة والصفحة
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'تفسير صفحة $currentPage (${currentSurah.name})',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: widget.isDarkMode ? Colors.amber : const Color(0xFF1B4D3E),
-                    ),
+                  Row(
+                    children: [
+                      const Icon(Icons.menu_book, color: Color(0xFF1B4D3E)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'التفسير الميسر - ${currentSurah.name}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
+                        ),
+                      ),
+                    ],
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -498,22 +528,92 @@ class _QuranPageState extends State<QuranPagesView> {
                 ],
               ),
               const Divider(thickness: 1.5),
+              Text(
+                'صفحة $currentPage',
+                style: TextStyle(fontSize: 13, color: widget.isDarkMode ? Colors.white60 : Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              
+              // قائمة الآيات وتفسيرها على شكل بطاقات كما طلبت
               Expanded(
-                child: SingleChildScrollView(
+                child: ListView.builder(
                   physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'تفسير صفحة $currentPage من ${currentSurah.name}:\n\n'
-                      '• بيان معاني الآيات الكريمة والأحكام الواردة في هذه الصفحة المباركة.\n\n'
-                      '(يعمل بدون إنترنت).',
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.8,
-                        color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+                  itemCount: pageVerses.length,
+                  itemBuilder: (context, index) {
+                    final item = pageVerses[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      elevation: 2,
+                      color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // نص الآية بخلفية مميزة
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: widget.isDarkMode ? const Color(0xFF333333) : const Color(0xFFF3EFEA),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "${item.verseText} (${item.verseNumber})",
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Amiri', // خط عربي أصيل إن وجد
+                                  color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            // نص التفسير
+                            Text(
+                              item.tafseerText,
+                              style: TextStyle(
+                                fontSize: 15,
+                                height: 1.6,
+                                color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                            const Divider(height: 20),
+                            // أزرار النسخ والمشاركة تحت كل آية (كما في التطبيقات الاحترافية)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(
+                                        text: "${item.verseText}\nالتفسير: ${item.tafseerText}"));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('تم نسخ الآية والتفسير')),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy, size: 18, color: Color(0xFF1B4D3E)),
+                                  label: const Text('نسخ', style: TextStyle(color: Color(0xFF1B4D3E))),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    // ميزة المشاركة (يمكن ربطها بـ share_plus لاحقاً)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('جارٍ تجهيز المشاركة...')),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.share, size: 18, color: Color(0xFF1B4D3E)),
+                                  label: const Text('مشاركة', style: TextStyle(color: Color(0xFF1B4D3E))),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
