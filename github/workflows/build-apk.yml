@@ -26,10 +26,14 @@ jobs:
       - name: Create Android Platform
         run: flutter create --platforms=android --project-name quran_libya .
 
-      - name: Download Assets directly
+      # التحميل عبر GitHub API مع إرسال Header القبول والتوكين لتفادي التوجيه الفارغ
+      - name: Download Assets via API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p assets
-          wget -O assets.zip "https://github.com/llyby820/quran-libya/releases/download/v1.0.0/assets.zip"
+          ASSET_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/llyby820/quran-libya/releases/tags/v1.0.0 | jq -r '.assets[] | select(.name=="assets.zip") | .id')
+          curl -L -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" "https://api.github.com/repos/llyby820/quran-libya/releases/assets/$ASSET_ID" -o assets.zip
           unzip -o assets.zip -d assets/
 
       - name: Build Release APK
