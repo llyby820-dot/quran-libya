@@ -20,7 +20,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # تعريف مجلد الأصول لضمان دمج صور صفحات المصحف بالكامل داخل التطبيق
   assets:
     - assets/
     - assets/pages/
+    - assets/data/
+    - assets/data/tafseer.json
