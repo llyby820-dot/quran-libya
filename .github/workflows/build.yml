@@ -25,6 +25,21 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
+      - name: Create Fresh Flutter Project Structure
+        run: |
+          # حفظ ملفاتنا الحالية مؤقتاً
+          mkdir -p temp_src/lib
+          cp -r lib/* temp_src/lib/
+          cp pubspec.yaml temp_src/
+
+          # إنشاء مشروع flutter جديد ومتوافق بالكامل مع أندرويد وGradle
+          flutter create . --org com.quran.libya --project-name quran_awqaf_libya --platforms android
+
+          # استعادة الكود الخاص بنا وملف pubspec
+          rm -rf lib/*
+          cp -r temp_src/lib/* lib/
+          cp temp_src/pubspec.yaml pubspec.yaml
+
       - name: Download & Extract Assets from Release
         run: |
           echo "Downloading assets.zip..."
@@ -37,7 +52,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --no-pub
+        run: flutter build apk --release
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
