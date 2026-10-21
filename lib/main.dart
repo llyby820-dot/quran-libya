@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,7 +55,6 @@ class HizbInfo {
   HizbInfo(this.number, this.name, this.pageNumber);
 }
 
-// نموذج بيانات التفسير للآيات
 class VerseTafseer {
   final String verseText;
   final int verseNumber;
@@ -70,10 +70,10 @@ class QuranMainScreen extends StatefulWidget {
   const QuranMainScreen({super.key, required this.isDarkMode, required this.onToggleTheme});
 
   @override
-  State<QuranMainScreen> createState() => _QuranMainScreenScreenState();
+  State<QuranMainScreen> createState() => _QuranMainScreenState();
 }
 
-class _QuranMainScreenScreenState extends State<QuranMainScreen> {
+class _QuranMainScreenState extends State<QuranMainScreen> {
   int savedPage = 1;
   bool isLoading = true;
 
@@ -327,6 +327,29 @@ class _QuranPageState extends State<QuranPagesView> {
     });
   }
 
+  // دالة قراءة التفسير من ملف JSON المحلي
+  Future<List<VerseTafseer>> _loadPageTafseer(int pageNum) async {
+    try {
+      String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
+      final data = json.decode(jsonString);
+
+      String pageKey = pageNum.toString();
+      if (data['pages'] != null && data['pages'][pageKey] != null) {
+        List versesJson = data['pages'][pageKey];
+        return versesJson
+            .map((v) => VerseTafseer(
+                  verseText: v['verse_text'] ?? '',
+                  verseNumber: v['verse_number'] ?? 0,
+                  tafseerText: v['tafseer_text'] ?? '',
+                ))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء تحميل ملف التفسير: $e");
+    }
+    return [];
+  }
+
   void _checkHizbNotification(int page) {
     HizbInfo? currentHizb;
     try {
@@ -468,26 +491,11 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // واجهة التفسير المحدثة والمصممة خصيصاً لتشابه الصور المرفقة (بطاقات آيات + تفسير + نسخ ومشاركة)
   void _openTafseer() {
     SurahInfo currentSurah = surahs.lastWhere(
       (s) => s.pageNumber <= currentPage,
       orElse: () => surahs.first,
     );
-
-    // عينة بيانات (Mock Data) للآيات وتفسيرها لهذه الصفحة (قابلة للاستبدال لاحقاً بقاعدة بيانات)
-    List<VerseTafseer> pageVerses = [
-      VerseTafseer(
-        verseText: "إِنَّ الَّذِينَ يَفْتَرُونَ عَلَى اللَّهِ الكَذِبَ لَا يُؤْمِنُونَ بِآيَاتِ اللَّهِ وَأُولَٰئِكَ هُمُ الكَاذِبُونَ",
-        verseNumber: 105,
-        tafseerText: "إنما يختلِق الكذبَ من لا يؤمن بالله وآياته، وأولئك هم الكاذبون في قولهم ذلك، أما محمد صلى الله عليه وسلم المؤمن بربه الخاضع له فمحال أن يكذب على الله، ويقول عليه ما لم يقل.",
-      ),
-      VerseTafseer(
-        verseText: "وَمَن كَفَرَ بِاللَّهِ مِن بَعْدِ إِيمَانِهِ إِلَّا مَنْ أُكْرِهَ وَقَلْبُهُ مُطْمَئِنُّ بِالإِيمَانِ",
-        verseNumber: 106,
-        tafseerText: "بيان حكم من ارتد عن الإسلام مكرهًا ومن ارتد طائعًا، وفضل ثبات القلب على الإيمان وقت الفتن.",
-      ),
-    ];
 
     showModalBottomSheet(
       context: context,
@@ -503,7 +511,6 @@ class _QuranPageState extends State<QuranPagesView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // الهيدر الخاص بالتفسير واختيار السورة والصفحة
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -533,85 +540,89 @@ class _QuranPageState extends State<QuranPagesView> {
                 style: TextStyle(fontSize: 13, color: widget.isDarkMode ? Colors.white60 : Colors.black54),
               ),
               const SizedBox(height: 8),
-              
-              // قائمة الآيات وتفسيرها على شكل بطاقات كما طلبت
               Expanded(
-                child: ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: pageVerses.length,
-                  itemBuilder: (context, index) {
-                    final item = pageVerses[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // نص الآية بخلفية مميزة
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: widget.isDarkMode ? const Color(0xFF333333) : const Color(0xFFF3EFEA),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                "${item.verseText} (${item.verseNumber})",
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Amiri', // خط عربي أصيل إن وجد
-                                  color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            // نص التفسير
-                            Text(
-                              item.tafseerText,
-                              style: TextStyle(
-                                fontSize: 15,
-                                height: 1.6,
-                                color: widget.isDarkMode ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                            const Divider(height: 20),
-                            // أزرار النسخ والمشاركة تحت كل آية (كما في التطبيقات الاحترافية)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                child: FutureBuilder<List<VerseTafseer>>(
+                  future: _loadPageTafseer(currentPage),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Color(0xFF1B4D3E)),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'التفسير غير متوفر حالياً لهذه الصفحة',
+                          style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black54),
+                        ),
+                      );
+                    }
+
+                    final pageVerses = snapshot.data!;
+                    return ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: pageVerses.length,
+                      itemBuilder: (context, index) {
+                        final item = pageVerses[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 2,
+                          color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                TextButton.icon(
-                                  onPressed: () {
-                                    Clipboard.setData(ClipboardData(
-                                        text: "${item.verseText}\nالتفسير: ${item.tafseerText}"));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('تم نسخ الآية والتفسير')),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.copy, size: 18, color: Color(0xFF1B4D3E)),
-                                  label: const Text('نسخ', style: TextStyle(color: Color(0xFF1B4D3E))),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: widget.isDarkMode ? const Color(0xFF333333) : const Color(0xFFF3EFEA),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "${item.verseText} (${item.verseNumber})",
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  onPressed: () {
-                                    // ميزة المشاركة (يمكن ربطها بـ share_plus لاحقاً)
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('جارٍ تجهيز المشاركة...')),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.share, size: 18, color: Color(0xFF1B4D3E)),
-                                  label: const Text('مشاركة', style: TextStyle(color: Color(0xFF1B4D3E))),
+                                const SizedBox(height: 10),
+                                Text(
+                                  item.tafseerText,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    height: 1.6,
+                                    color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+                                  ),
+                                ),
+                                const Divider(height: 20),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text: "${item.verseText}\nالتفسير: ${item.tafseerText}"));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('تم نسخ الآية والتفسير')),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.copy, size: 18, color: Color(0xFF1B4D3E)),
+                                      label: const Text('نسخ', style: TextStyle(color: Color(0xFF1B4D3E))),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
