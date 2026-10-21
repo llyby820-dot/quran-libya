@@ -327,23 +327,46 @@ class _QuranPageState extends State<QuranPagesView> {
     });
   }
 
-  // دالة قراءة التفسير من ملف JSON المحلي
+  // دالة قراءة التفسير المحدثة - تقرأ المجموعات والمصفوفات مباشرة
   Future<List<VerseTafseer>> _loadPageTafseer(int pageNum) async {
     try {
       String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
-      final data = json.decode(jsonString);
+      final dynamic decodedData = json.decode(jsonString);
 
-      String pageKey = pageNum.toString();
-      if (data['pages'] != null && data['pages'][pageKey] != null) {
-        List versesJson = data['pages'][pageKey];
-        return versesJson
-            .map((v) => VerseTafseer(
-                  verseText: v['verse_text'] ?? '',
-                  verseNumber: v['verse_number'] ?? 0,
-                  tafseerText: v['tafseer_text'] ?? '',
-                ))
-            .toList();
+      List<VerseTafseer> resultList = [];
+
+      // إذا كانت البيانات قائمة مباشرة [...]
+      if (decodedData is List) {
+        for (var item in decodedData) {
+          if (item['number'].toString() == pageNum.toString()) {
+            resultList.add(
+              VerseTafseer(
+                verseText: item['text'] ?? '',
+                verseNumber: int.tryParse(item['aya'].toString()) ?? 1,
+                tafseerText: item['text'] ?? '',
+              ),
+            );
+          }
+        }
+      } 
+      // إذا كانت البيانات تحت حقل pages
+      else if (decodedData is Map && decodedData['pages'] != null) {
+        String pageKey = pageNum.toString();
+        if (decodedData['pages'][pageKey] != null) {
+          List versesJson = decodedData['pages'][pageKey];
+          for (var v in versesJson) {
+            resultList.add(
+              VerseTafseer(
+                verseText: v['verse_text'] ?? v['text'] ?? '',
+                verseNumber: int.tryParse((v['verse_number'] ?? v['aya'] ?? 1).toString()) ?? 1,
+                tafseerText: v['tafseer_text'] ?? v['text'] ?? '',
+              ),
+            );
+          }
+        }
       }
+
+      return resultList;
     } catch (e) {
       debugPrint("خطأ أثناء تحميل ملف التفسير: $e");
     }
@@ -583,10 +606,10 @@ class _QuranPageState extends State<QuranPagesView> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    "${item.verseText} (${item.verseNumber})",
+                                    "الآية (${item.verseNumber})",
                                     textAlign: TextAlign.right,
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
                                     ),
@@ -608,9 +631,9 @@ class _QuranPageState extends State<QuranPagesView> {
                                     TextButton.icon(
                                       onPressed: () {
                                         Clipboard.setData(ClipboardData(
-                                            text: "${item.verseText}\nالتفسير: ${item.tafseerText}"));
+                                            text: "الآية (${item.verseNumber})\nالتفسير: ${item.tafseerText}"));
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('تم نسخ الآية والتفسير')),
+                                          const SnackBar(content: Text('تم نسخ التفسير')),
                                         );
                                       },
                                       icon: const Icon(Icons.copy, size: 18, color: Color(0xFF1B4D3E)),
@@ -709,7 +732,6 @@ class _QuranPageState extends State<QuranPagesView> {
               },
             ),
 
-            // إشعار الحزب العلوي
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
