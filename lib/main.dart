@@ -327,7 +327,7 @@ class _QuranPageState extends State<QuranPagesView> {
     });
   }
 
-  // دالة قراءة التفسير المباشرة والمضبوطة لمعالجة هيكل الملف الحقيقي
+  // دالة قراءة التفسير المرنة والمطابقة لرقم الصفحة 100%
   Future<List<VerseTafseer>> _loadPageTafseer(int pageNum) async {
     try {
       String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
@@ -337,32 +337,19 @@ class _QuranPageState extends State<QuranPagesView> {
 
       if (decodedData is List) {
         for (var item in decodedData) {
-          if (item['number'].toString() == pageNum.toString()) {
+          String pageInJson = (item['number'] ?? item['page'] ?? '').toString().trim();
+          
+          if (pageInJson == pageNum.toString().trim()) {
             resultList.add(
               VerseTafseer(
-                verseText: item['text'] ?? '',
-                verseNumber: int.tryParse(item['aya'].toString()) ?? 1,
-                tafseerText: item['text'] ?? '',
-              ),
-            );
-          }
-        }
-      } else if (decodedData is Map && decodedData['pages'] != null) {
-        String pageKey = pageNum.toString();
-        if (decodedData['pages'][pageKey] != null) {
-          List versesJson = decodedData['pages'][pageKey];
-          for (var v in versesJson) {
-            resultList.add(
-              VerseTafseer(
-                verseText: v['text'] ?? v['verse_text'] ?? '',
-                verseNumber: int.tryParse((v['aya'] ?? v['verse_number'] ?? 1).toString()) ?? 1,
-                tafseerText: v['text'] ?? v['tafseer_text'] ?? '',
+                verseText: item['verse_text'] ?? item['text'] ?? '',
+                verseNumber: int.tryParse((item['aya'] ?? item['verse_number'] ?? 1).toString()) ?? 1,
+                tafseerText: item['text'] ?? item['tafseer_text'] ?? '',
               ),
             );
           }
         }
       }
-
       return resultList;
     } catch (e) {
       debugPrint("خطأ أثناء تحميل ملف التفسير: $e");
@@ -531,7 +518,6 @@ class _QuranPageState extends State<QuranPagesView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // شريط السحب العلوي (Drag Handle)
               Center(
                 child: Container(
                   width: 40,
@@ -544,7 +530,6 @@ class _QuranPageState extends State<QuranPagesView> {
                 ),
               ),
 
-              // هيدر النافذة الرئيسي
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -591,7 +576,6 @@ class _QuranPageState extends State<QuranPagesView> {
               Divider(height: 1, thickness: 1, color: widget.isDarkMode ? Colors.white12 : Colors.black12),
               const SizedBox(height: 12),
 
-              // قائمة التفسير
               Expanded(
                 child: FutureBuilder<List<VerseTafseer>>(
                   future: _loadPageTafseer(currentPage),
@@ -638,7 +622,6 @@ class _QuranPageState extends State<QuranPagesView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // رأس البطاقة: رقم الآية وزر النسخ
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -690,7 +673,6 @@ class _QuranPageState extends State<QuranPagesView> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // نص التفسير الميسر
                                 Text(
                                   item.tafseerText,
                                   style: TextStyle(
