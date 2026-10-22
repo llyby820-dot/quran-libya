@@ -55,14 +55,6 @@ class HizbInfo {
   HizbInfo(this.number, this.name, this.pageNumber);
 }
 
-class VerseTafseer {
-  final String verseText;
-  final int verseNumber;
-  final String tafseerText;
-
-  VerseTafseer({required this.verseText, required this.verseNumber, required this.tafseerText});
-}
-
 class QuranMainScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
@@ -316,6 +308,22 @@ class _QuranPageState extends State<QuranPagesView> {
     SurahInfo("سورة الناس", 612, 114),
   ];
 
+  // خريطة عدد آيات السور لضبط العداد بدقة
+  final Map<int, int> surahAyahCounts = {
+    1: 7, 2: 286, 3: 200, 4: 176, 5: 120, 6: 165, 7: 206, 8: 75, 9: 129, 10: 109,
+    11: 123, 12: 111, 13: 43, 14: 52, 15: 99, 16: 128, 17: 111, 18: 110, 19: 98, 20: 135,
+    21: 112, 22: 78, 23: 118, 24: 64, 25: 77, 26: 227, 27: 93, 28: 88, 29: 69, 30: 60,
+    31: 34, 32: 30, 33: 73, 34: 54, 35: 45, 36: 83, 37: 182, 38: 88, 39: 75, 40: 85,
+    41: 54, 42: 53, 43: 89, 44: 59, 45: 37, 46: 35, 47: 38, 48: 29, 49: 18, 50: 45,
+    51: 60, 52: 49, 53: 62, 54: 55, 55: 78, 56: 96, 57: 29, 58: 22, 59: 24, 60: 13,
+    61: 14, 62: 11, 63: 11, 64: 18, 65: 12, 66: 12, 67: 30, 68: 52, 69: 52, 70: 44,
+    71: 28, 72: 28, 73: 20, 74: 56, 75: 40, 76: 31, 77: 50, 78: 40, 79: 46, 80: 42,
+    81: 29, 82: 19, 83: 36, 84: 25, 85: 22, 86: 17, 87: 19, 88: 26, 89: 30, 90: 20,
+    91: 15, 92: 21, 93: 11, 94: 8, 95: 8, 96: 19, 97: 5, 98: 8, 99: 8, 100: 11,
+    101: 11, 102: 8, 103: 3, 104: 9, 105: 5, 106: 4, 107: 7, 108: 3, 109: 6, 110: 3,
+    111: 5, 112: 4, 113: 5, 114: 6
+  };
+
   @override
   void initState() {
     super.initState();
@@ -325,36 +333,6 @@ class _QuranPageState extends State<QuranPagesView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkHizbNotification(currentPage);
     });
-  }
-
-  // دالة قراءة التفسير المرنة والمطابقة لرقم الصفحة 100%
-  Future<List<VerseTafseer>> _loadPageTafseer(int pageNum) async {
-    try {
-      String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
-      final dynamic decodedData = json.decode(jsonString);
-
-      List<VerseTafseer> resultList = [];
-
-      if (decodedData is List) {
-        for (var item in decodedData) {
-          String pageInJson = (item['number'] ?? item['page'] ?? '').toString().trim();
-          
-          if (pageInJson == pageNum.toString().trim()) {
-            resultList.add(
-              VerseTafseer(
-                verseText: item['verse_text'] ?? item['text'] ?? '',
-                verseNumber: int.tryParse((item['aya'] ?? item['verse_number'] ?? 1).toString()) ?? 1,
-                tafseerText: item['text'] ?? item['tafseer_text'] ?? '',
-              ),
-            );
-          }
-        }
-      }
-      return resultList;
-    } catch (e) {
-      debugPrint("خطأ أثناء تحميل ملف التفسير: $e");
-    }
-    return [];
   }
 
   void _checkHizbNotification(int page) {
@@ -498,11 +476,13 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  void _openTafseer() {
-    SurahInfo currentSurah = surahs.lastWhere(
-      (s) => s.pageNumber <= currentPage,
-      orElse: () => surahs.first,
-    );
+  // 🌟 واجهة التفسير المحدثة والمستقلة بالكامل (مطابقة برقم السورة ورقم الآية فقط)
+  void _openTafseer() async {
+    int selectedSurahIndex = 0; 
+    int selectedAyahNumber = 1;
+
+    String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
+    final dynamic decodedData = json.decode(jsonString);
 
     showModalBottomSheet(
       context: context,
@@ -512,186 +492,227 @@ class _QuranPageState extends State<QuranPagesView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          height: MediaQuery.of(context).size.height * 0.80,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? Colors.white24 : Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            String currentTafseerText = "التفسير غير متوفر";
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            int maxAyahs = surahAyahCounts[selectedSurahIndex + 1] ?? 7;
+            if (selectedAyahNumber > maxAyahs) selectedAyahNumber = maxAyahs;
+
+            if (decodedData is List) {
+              for (var item in decodedData) {
+                int sNum = int.tryParse((item['surah'] ?? item['number'] ?? 1).toString()) ?? 1;
+                int aNum = int.tryParse((item['aya'] ?? item['verse_number'] ?? 1).toString()) ?? 1;
+
+                if (sNum == (selectedSurahIndex + 1) && aNum == selectedAyahNumber) {
+                  currentTafseerText = item['text'] ?? item['tafseer_text'] ?? 'التفسير غير متوفر';
+                  break;
+                }
+              }
+            }
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              height: MediaQuery.of(context).size.height * 0.82,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode ? Colors.white24 : Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1B4D3E).withOpacity(0.12),
-                          shape: BoxShape.circle,
+                      Text(
+                        'التفسير الميسر',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
                         ),
-                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFF1B4D3E), size: 22),
                       ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'التفسير الميسر',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
+                      InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('اختر السورة'),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                height: 350,
+                                child: ListView.builder(
+                                  itemCount: surahs.length,
+                                  itemBuilder: (context, index) {
+                                    return ListTile(
+                                      title: Text(surahs[index].name),
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedSurahIndex = index;
+                                          selectedAyahNumber = 1;
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1B4D3E).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          Text(
-                            'صفحة $currentPage • ${currentSurah.name}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: widget.isDarkMode ? Colors.white54 : Colors.black54,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                surahs[selectedSurahIndex].name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1B4D3E),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_drop_down, color: Color(0xFF1B4D3E)),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: widget.isDarkMode ? Colors.white70 : Colors.black54),
-                    onPressed: () => Navigator.pop(context),
+                  const SizedBox(height: 16),
+
+                  // 🎛️ شريط العداد (- الرقم +)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: const Color(0xFF1B4D3E),
+                          onPressed: selectedAyahNumber > 1
+                              ? () {
+                                  setModalState(() {
+                                    selectedAyahNumber--;
+                                  });
+                                }
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '$selectedAyahNumber',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: const Color(0xFF1B4D3E),
+                          onPressed: selectedAyahNumber < maxAyahs
+                              ? () {
+                                  setModalState(() {
+                                    selectedAyahNumber++;
+                                  });
+                                }
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Divider(color: widget.isDarkMode ? Colors.white12 : Colors.black12),
+                  const SizedBox(height: 10),
+
+                  Expanded(
+                    child: ListView(
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1B4D3E).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF1B4D3E).withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "﴿ الآية $selectedAyahNumber ﴾",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      Clipboard.setData(ClipboardData(
+                                          text: "${surahs[selectedSurahIndex].name} - الآية ($selectedAyahNumber)\n\nالتفسير: $currentTafseerText"));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('تم نسخ التفسير بنجاح'),
+                                          behavior: SnackBarBehavior.floating,
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(6.0),
+                                      child: Row(
+                                        children: const [
+                                          Icon(Icons.copy_rounded, size: 16, color: Color(0xFF1B4D3E)),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'نسخ',
+                                            style: TextStyle(fontSize: 12, color: Color(0xFF1B4D3E), fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                currentTafseerText,
+                                textAlign: TextAlign.justify,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.8,
+                                  color: widget.isDarkMode ? Colors.white.withOpacity(0.9) : const Color(0xFF2C3E50),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Divider(height: 1, thickness: 1, color: widget.isDarkMode ? Colors.white12 : Colors.black12),
-              const SizedBox(height: 12),
-
-              Expanded(
-                child: FutureBuilder<List<VerseTafseer>>(
-                  future: _loadPageTafseer(currentPage),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Color(0xFF1B4D3E)),
-                      );
-                    }
-
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'التفسير غير متوفر حالياً لهذه الصفحة',
-                          style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black54),
-                        ),
-                      );
-                    }
-
-                    final pageVerses = snapshot.data!;
-                    return ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: pageVerses.length,
-                      itemBuilder: (context, index) {
-                        final item = pageVerses[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: widget.isDarkMode ? Colors.white10 : const Color(0xFFEFECE6),
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: widget.isDarkMode
-                                            ? const Color(0xFF1B4D3E).withOpacity(0.3)
-                                            : const Color(0xFF1B4D3E).withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        "﴿ الآية ${item.verseNumber} ﴾",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
-                                        ),
-                                      ),
-                                    ),
-                                    InkWell(
-                                      onTap: () {
-                                        Clipboard.setData(ClipboardData(
-                                            text: "الآية (${item.verseNumber})\n\nالتفسير: ${item.tafseerText}"));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('تم نسخ التفسير بنجاح'),
-                                            behavior: SnackBarBehavior.floating,
-                                            duration: Duration(seconds: 2),
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(6.0),
-                                        child: Row(
-                                          children: const [
-                                            Icon(Icons.copy_rounded, size: 16, color: Color(0xFF1B4D3E)),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              'نسخ',
-                                              style: TextStyle(fontSize: 12, color: Color(0xFF1B4D3E), fontWeight: FontWeight.w600),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-
-                                Text(
-                                  item.tafseerText,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    height: 1.7,
-                                    color: widget.isDarkMode ? Colors.white.withOpacity(0.87) : const Color(0xFF2C3E50),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
