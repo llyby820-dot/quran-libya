@@ -341,7 +341,7 @@ class _QuranPageState extends State<QuranPagesView> {
           if (item['number'].toString() == pageNum.toString()) {
             resultList.add(
               VerseTafseer(
-                verseText: item['text'] ?? '',
+                verseText: item['verse_text'] ?? item['text'] ?? '',
                 verseNumber: int.tryParse(item['aya'].toString()) ?? 1,
                 tafseerText: item['text'] ?? '',
               ),
@@ -523,46 +523,78 @@ class _QuranPageState extends State<QuranPagesView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF7F5EC),
+      backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF9F8F3),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(16),
-          height: MediaQuery.of(context).size.height * 0.75,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: MediaQuery.of(context).size.height * 0.80,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // شريط السحب العلوي (Drag Handle)
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? Colors.white24 : Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // هيدر النافذة الرئيسي
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.menu_book, color: Color(0xFF1B4D3E)),
-                      const SizedBox(width: 8),
-                      Text(
-                        'التفسير الميسر - ${currentSurah.name}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B4D3E).withOpacity(0.12),
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFF1B4D3E), size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'التفسير الميسر',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
+                            ),
+                          ),
+                          Text(
+                            'صفحة $currentPage • ${currentSurah.name}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: widget.isDarkMode ? Colors.white54 : Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close_rounded, color: widget.isDarkMode ? Colors.white70 : Colors.black54),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(thickness: 1.5),
-              Text(
-                'صفحة $currentPage',
-                style: TextStyle(fontSize: 13, color: widget.isDarkMode ? Colors.white60 : Colors.black54),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              Divider(height: 1, thickness: 1, color: widget.isDarkMode ? Colors.white12 : Colors.black12),
+              const SizedBox(height: 12),
+
+              // قائمة أوراق التفسير
               Expanded(
                 child: FutureBuilder<List<VerseTafseer>>(
                   future: _loadPageTafseer(currentPage),
@@ -588,58 +620,115 @@ class _QuranPageState extends State<QuranPagesView> {
                       itemCount: pageVerses.length,
                       itemBuilder: (context, index) {
                         final item = pageVerses[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          elevation: 2,
-                          color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: widget.isDarkMode ? Colors.white10 : const Color(0xFFEFECE6),
+                            ),
+                          ),
                           child: Padding(
-                            padding: const EdgeInsets.all(14.0),
+                            padding: const EdgeInsets.all(16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: widget.isDarkMode ? const Color(0xFF333333) : const Color(0xFFF3EFEA),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    "الآية (${item.verseNumber})",
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
+                                // رأس البطاقة: رقم الآية وزر النسخ
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: widget.isDarkMode
+                                            ? const Color(0xFF1B4D3E).withOpacity(0.3)
+                                            : const Color(0xFF1B4D3E).withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        "﴿ الآية ${item.verseNumber} ﴾",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
+                                        ),
+                                      ),
+                                    ),
+                                    InkWell(
+                                      onTap: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text: "الآية (${item.verseNumber}): ${item.verseText}\n\nالتفسير: ${item.tafseerText}"));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم نسخ الآية والتفسير بنجاح'),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: Row(
+                                          children: const [
+                                            Icon(Icons.copy_rounded, size: 16, color: Color(0xFF1B4D3E)),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'نسخ',
+                                              style: TextStyle(fontSize: 12, color: Color(0xFF1B4D3E), fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+
+                                // نص الآية القرآنية (إذا كان متوفراً)
+                                if (item.verseText.isNotEmpty) ...[
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: widget.isDarkMode
+                                          ? const Color(0xFF1E1E1E)
+                                          : const Color(0xFFF7F5EC),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: widget.isDarkMode ? Colors.white12 : const Color(0xFFE2DDD2),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      item.verseText,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.6,
+                                        color: widget.isDarkMode ? Colors.amber.shade100 : const Color(0xFF1B4D3E),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
+                                ],
+
+                                // نص التفسير الميسر
                                 Text(
                                   item.tafseerText,
                                   style: TextStyle(
                                     fontSize: 15,
-                                    height: 1.6,
-                                    color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+                                    height: 1.7,
+                                    color: widget.isDarkMode ? Colors.white.withOpacity(0.87) : const Color(0xFF2C3E50),
                                   ),
-                                ),
-                                const Divider(height: 20),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(
-                                            text: "الآية (${item.verseNumber})\nالتفسير: ${item.tafseerText}"));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('تم نسخ التفسير')),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.copy, size: 18, color: Color(0xFF1B4D3E)),
-                                      label: const Text('نسخ', style: TextStyle(color: Color(0xFF1B4D3E))),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
