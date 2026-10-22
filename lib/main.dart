@@ -327,7 +327,7 @@ class _QuranPageState extends State<QuranPagesView> {
     });
   }
 
-  // دالة قراءة التفسير المحدثة - تقرأ المجموعات والمصفوفات مباشرة
+  // دالة قراءة التفسير المباشرة والمضبوطة لمعالجة هيكل الملف الحقيقي
   Future<List<VerseTafseer>> _loadPageTafseer(int pageNum) async {
     try {
       String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
@@ -335,31 +335,28 @@ class _QuranPageState extends State<QuranPagesView> {
 
       List<VerseTafseer> resultList = [];
 
-      // إذا كانت البيانات قائمة مباشرة [...]
       if (decodedData is List) {
         for (var item in decodedData) {
           if (item['number'].toString() == pageNum.toString()) {
             resultList.add(
               VerseTafseer(
-                verseText: item['verse_text'] ?? item['text'] ?? '',
+                verseText: item['text'] ?? '',
                 verseNumber: int.tryParse(item['aya'].toString()) ?? 1,
                 tafseerText: item['text'] ?? '',
               ),
             );
           }
         }
-      } 
-      // إذا كانت البيانات تحت حقل pages
-      else if (decodedData is Map && decodedData['pages'] != null) {
+      } else if (decodedData is Map && decodedData['pages'] != null) {
         String pageKey = pageNum.toString();
         if (decodedData['pages'][pageKey] != null) {
           List versesJson = decodedData['pages'][pageKey];
           for (var v in versesJson) {
             resultList.add(
               VerseTafseer(
-                verseText: v['verse_text'] ?? v['text'] ?? '',
-                verseNumber: int.tryParse((v['verse_number'] ?? v['aya'] ?? 1).toString()) ?? 1,
-                tafseerText: v['tafseer_text'] ?? v['text'] ?? '',
+                verseText: v['text'] ?? v['verse_text'] ?? '',
+                verseNumber: int.tryParse((v['aya'] ?? v['verse_number'] ?? 1).toString()) ?? 1,
+                tafseerText: v['text'] ?? v['tafseer_text'] ?? '',
               ),
             );
           }
@@ -594,7 +591,7 @@ class _QuranPageState extends State<QuranPagesView> {
               Divider(height: 1, thickness: 1, color: widget.isDarkMode ? Colors.white12 : Colors.black12),
               const SizedBox(height: 12),
 
-              // قائمة أوراق التفسير
+              // قائمة التفسير
               Expanded(
                 child: FutureBuilder<List<VerseTafseer>>(
                   future: _loadPageTafseer(currentPage),
@@ -665,10 +662,10 @@ class _QuranPageState extends State<QuranPagesView> {
                                     InkWell(
                                       onTap: () {
                                         Clipboard.setData(ClipboardData(
-                                            text: "الآية (${item.verseNumber}): ${item.verseText}\n\nالتفسير: ${item.tafseerText}"));
+                                            text: "الآية (${item.verseNumber})\n\nالتفسير: ${item.tafseerText}"));
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
-                                            content: Text('تم نسخ الآية والتفسير بنجاح'),
+                                            content: Text('تم نسخ التفسير بنجاح'),
                                             behavior: SnackBarBehavior.floating,
                                             duration: Duration(seconds: 2),
                                           ),
@@ -692,34 +689,6 @@ class _QuranPageState extends State<QuranPagesView> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-
-                                // نص الآية القرآنية (إذا كان متوفراً)
-                                if (item.verseText.isNotEmpty) ...[
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: widget.isDarkMode
-                                          ? const Color(0xFF1E1E1E)
-                                          : const Color(0xFFF7F5EC),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: widget.isDarkMode ? Colors.white12 : const Color(0xFFE2DDD2),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      item.verseText,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        height: 1.6,
-                                        color: widget.isDarkMode ? Colors.amber.shade100 : const Color(0xFF1B4D3E),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                ],
 
                                 // نص التفسير الميسر
                                 Text(
