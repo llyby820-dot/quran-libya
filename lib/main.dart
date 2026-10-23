@@ -2,11 +2,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:just_audio/just_audio.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const QuranApp());
+}
+
+class ReciterInfo {
+  final String name;
+  final String folderName;
+
+  ReciterInfo(this.name, this.folderName);
 }
 
 class QuranApp extends StatefulWidget {
@@ -128,6 +136,21 @@ class _QuranPageState extends State<QuranPagesView> {
   String? hizbNotificationText;
   bool showHizbNotification = false;
 
+  // 🔊 مشغل الصوتيات والقراء الـ 5
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool isPlaying = false;
+  bool isLoadingAudio = false;
+
+  final List<ReciterInfo> reciters = [
+    ReciterInfo("محمود خليل الحصري", "Husary_128kbps"),
+    ReciterInfo("عبد الباسط عبد الصمد", "AbdulSamad_64kbps_QuranExplorer.Com"),
+    ReciterInfo("محمد صديق المنشاوي", "Minshawy_Murattal_128kbps"),
+    ReciterInfo("ماهر المعيقلي", "MaherAlMuaiqly128kbps"),
+    ReciterInfo("ياسر الدوسري", "Yasser_Ad-Dussary_128kbps"),
+  ];
+
+  late ReciterInfo selectedReciter;
+
   final List<HizbInfo> hizbs = [
     HizbInfo(1, "سورة البقرة", 1),
     HizbInfo(2, "وإذا لقوا", 11),
@@ -191,7 +214,6 @@ class _QuranPageState extends State<QuranPagesView> {
     HizbInfo(60, "سبح اسم ربك", 598),
   ];
 
-  // 🎯 تم تعديل الصفحة لـ سورة البقرة إلى الصفحة 2 بدقة
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
     SurahInfo("سورة البقرة", 2, 2),
@@ -327,12 +349,58 @@ class _QuranPageState extends State<QuranPagesView> {
   @override
   void initState() {
     super.initState();
+    selectedReciter = reciters.first;
     currentPage = widget.initialPage;
     _pageController = PageController(initialPage: widget.initialPage - 1);
     _loadBookmark();
+    
+    _audioPlayer.playerStateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          isPlaying = state.playing;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkHizbNotification(currentPage);
     });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  // 🎵 دالة تشغيل الصوت بناءً على الصفحة الحالية والقارئ المختار
+  Future<void> _toggleAudio() async {
+    if (isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      setState(() {
+        isLoadingAudio = true;
+      });
+      try {
+        String pageFormatted = currentPage.toString().padLeft(3, '0');
+        String audioUrl = "https://everyayah.com/data/${selectedReciter.folderName}/PageMp3s/Page$pageFormatted.mp3";
+        
+        await _audioPlayer.setUrl(audioUrl);
+        await _audioPlayer.play();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تعذر تشغيل الصوت، تحقق من الاتصال بالإنترنت')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            isLoadingAudio = false;
+          });
+        }
+      }
+    }
   }
 
   void _checkHizbNotification(int page) {
@@ -476,7 +544,48 @@ class _QuranPageState extends State<QuranPagesView> {
     );
   }
 
-  // 🌟 واجهة التفسير المحدثة والمستقلة بالكامل (مطابقة برقم السورة ورقم الآية فقط)
+  void _openReciterSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'اختر القارئ المفضّل',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E)),
+              ),
+              const SizedBox(height: 12),
+              ...reciters.map((reciter) {
+                return ListTile(
+                  title: Text(reciter.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  trailing: selectedReciter == reciter
+                      ? const Icon(Icons.check_circle, color: Color(0xFF1B4D3E))
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      selectedReciter = reciter;
+                    });
+                    Navigator.pop(context);
+                    if (isPlaying) {
+                      _toggleAudio(); // إعادة التشغيل بصوت القارئ الجديد
+                    }
+                  },
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _openTafseer() async {
     int selectedSurahIndex = 0; 
     int selectedAyahNumber = 1;
@@ -591,7 +700,6 @@ class _QuranPageState extends State<QuranPagesView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 🎛️ شريط العداد (- الرقم +)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     decoration: BoxDecoration(
@@ -781,6 +889,9 @@ class _QuranPageState extends State<QuranPagesView> {
                 });
                 _saveCurrentPage(page);
                 _checkHizbNotification(page);
+                if (isPlaying) {
+                  _toggleAudio(); // إيقاف أوتشغيل الصوت حسب الصفحة الجديدة
+                }
               },
               itemBuilder: (context, index) {
                 int pageNum = index + 1;
@@ -885,29 +996,39 @@ class _QuranPageState extends State<QuranPagesView> {
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: 56,
+                  height: 60,
                   color: widget.isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFF1B4D3E).withOpacity(0.9),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       TextButton.icon(
                         onPressed: _openIndex,
-                        icon: const Icon(Icons.format_list_bulleted, color: Colors.white),
-                        label: const Text('الفهرس', style: TextStyle(color: Colors.white)),
+                        icon: const Icon(Icons.format_list_bulleted, color: Colors.white, size: 20),
+                        label: const Text('الفهرس', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                      // 🔊 زر القراءة الصوتية (تشغيل / إيقاف)
+                      IconButton(
+                        icon: isLoadingAudio
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Icon(isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.amber, size: 32),
+                        tooltip: 'التلاوة الصوتية',
+                        onPressed: _toggleAudio,
+                      ),
+                      // 👤 زر اختيار القارئ
+                      IconButton(
+                        icon: const Icon(Icons.record_voice_over, color: Colors.white, size: 20),
+                        tooltip: 'اختر القارئ',
+                        onPressed: _openReciterSelector,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.auto_stories, color: Colors.white),
+                        icon: const Icon(Icons.auto_stories, color: Colors.white, size: 20),
                         tooltip: 'التفسير الميسر',
                         onPressed: _openTafseer,
                       ),
-                      if (bookmarkedPage != -1)
-                        TextButton.icon(
-                          onPressed: () {
-                            _pageController.jumpToPage(bookmarkedPage - 1);
-                          },
-                          icon: const Icon(Icons.bookmark, color: Colors.amber),
-                          label: Text('صفحة $bookmarkedPage', style: const TextStyle(color: Colors.amber)),
-                        ),
                     ],
                   ),
                 ),
