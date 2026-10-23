@@ -191,9 +191,10 @@ class _QuranPageState extends State<QuranPagesView> {
     HizbInfo(60, "سبح اسم ربك", 598),
   ];
 
+  // 🎯 تم تعديل الصفحة لـ سورة البقرة إلى الصفحة 2 بدقة
   final List<SurahInfo> surahs = [
     SurahInfo("سورة الفاتحة", 1, 1),
-    SurahInfo("سورة البقرة", 1, 2),
+    SurahInfo("سورة البقرة", 2, 2),
     SurahInfo("سورة آل عمران", 50, 3),
     SurahInfo("سورة النساء", 77, 4),
     SurahInfo("سورة المائدة", 106, 5),
@@ -308,7 +309,6 @@ class _QuranPageState extends State<QuranPagesView> {
     SurahInfo("سورة الناس", 612, 114),
   ];
 
-  // خريطة عدد آيات السور لضبط العداد بدقة
   final Map<int, int> surahAyahCounts = {
     1: 7, 2: 286, 3: 200, 4: 176, 5: 120, 6: 165, 7: 206, 8: 75, 9: 129, 10: 109,
     11: 123, 12: 111, 13: 43, 14: 52, 15: 99, 16: 128, 17: 111, 18: 110, 19: 98, 20: 135,
@@ -496,7 +496,8 @@ class _QuranPageState extends State<QuranPagesView> {
           builder: (context, setModalState) {
             String currentTafseerText = "التفسير غير متوفر";
 
-            int maxAyahs = surahAyahCounts[selectedSurahIndex + 1] ?? 7;
+            int targetSurahNumber = surahs[selectedSurahIndex].number;
+            int maxAyahs = surahAyahCounts[targetSurahNumber] ?? 7;
             if (selectedAyahNumber > maxAyahs) selectedAyahNumber = maxAyahs;
 
             if (decodedData is List) {
@@ -504,7 +505,7 @@ class _QuranPageState extends State<QuranPagesView> {
                 int sNum = int.tryParse((item['surah'] ?? item['number'] ?? 1).toString()) ?? 1;
                 int aNum = int.tryParse((item['aya'] ?? item['verse_number'] ?? 1).toString()) ?? 1;
 
-                if (sNum == (selectedSurahIndex + 1) && aNum == selectedAyahNumber) {
+                if (sNum == targetSurahNumber && aNum == selectedAyahNumber) {
                   currentTafseerText = item['text'] ?? item['tafseer_text'] ?? 'التفسير غير متوفر';
                   break;
                 }
@@ -550,7 +551,7 @@ class _QuranPageState extends State<QuranPagesView> {
                                   itemCount: surahs.length,
                                   itemBuilder: (context, index) {
                                     return ListTile(
-                                      title: Text(surahs[index].name),
+                                      title: Text("${surahs[index].number}. ${surahs[index].name}"),
                                       onTap: () {
                                         setModalState(() {
                                           selectedSurahIndex = index;
