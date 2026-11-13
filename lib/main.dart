@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:just_audio/just_audio.dart';
+import 'audio_service.dart'; // استيراد خدمة الصوتيات المحلية
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -372,23 +373,30 @@ class _QuranPageState extends State<QuranPagesView> {
     super.dispose();
   }
 
+  // دالة التشغيل المحدثة للعمل محلياً بدون إنترنت عبر AudioService
   Future<void> _toggleAudio() async {
     if (isPlaying) {
-      await _audioPlayer.pause();
+      await AudioService.stop();
     } else {
       setState(() {
         isLoadingAudio = true;
       });
       try {
         String pageFormatted = currentPage.toString().padLeft(3, '0');
-        String audioUrl = "https://everyayah.com/data/${selectedReciter.folderName}/PageMp3s/Page$pageFormatted.mp3";
         
-        await _audioPlayer.setUrl(audioUrl);
-        await _audioPlayer.play();
+        // جلب مسار الملف محلياً (وإن لم يكن موجوداً يتم تحميله وتخزينه تلقائياً لأول مرة)
+        String? localPath = await AudioService.getAudioFilePath(pageFormatted, selectedReciter.folderName);
+        
+        if (localPath != null) {
+          await _audioPlayer.setFilePath(localPath);
+          await _audioPlayer.play();
+        } else {
+          throw Exception("فشل في تحميل أو جلب الملف الصوتي");
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تعذر تشغيل الصوت، تحقق من الاتصال بالإنترنت')),
+            const SnackBar(content: Text('تعذر تحميل الصوت، تحقق من الاتصال بالإنترنت للتحميل لأول مرة')),
           );
         }
       } finally {
@@ -585,7 +593,6 @@ class _QuranPageState extends State<QuranPagesView> {
   }
 
   void _openTafseer() async {
-    // تحديد السورة الحالية تلقائياً بناءً على الصفحة النشطة حالياً
     SurahInfo currentActiveSurah = surahs.lastWhere(
       (s) => s.pageNumber <= currentPage,
       orElse: () => surahs.first,
