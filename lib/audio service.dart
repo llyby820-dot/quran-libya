@@ -6,7 +6,7 @@ import 'package:just_audio/just_audio.dart';
 class AudioService {
   static final AudioPlayer _player = AudioPlayer();
   
-  // دالة لفحص ما إذا كانت السورة محملة مسبقاً، وإذا لم تكن يتم تحميلها وتخزينها محلياً
+  // دالة للتحقق من وجود السورة محلياً، وإذا لم تكن موجودة يتم تحميلها وتخزينها
   static Future<String?> getAudioFilePath(String surahNumber, String reciterId) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -19,13 +19,12 @@ class AudioService {
       final filePath = '${folderPath.path}/surah_$surahNumber.mp3';
       final file = File(filePath);
 
-      // إذا كان الملف موجوداً محلياً، نرجع مساره مباشرة للتشغيل بدون إنترنت
+      // إذا كان الملف مخزناً مسبقاً، نرجع مساره فوراً للتشغيل بدون إنترنت
       if (await file.exists()) {
         return filePath;
       }
 
-      // إذا لم يكن موجوداً، نقوم بتحميله من السيرفر المعتمد (مثال: سيرفر mp3quran أو سيرفرك الخاص)
-      // ملاحظة: يمكنك تغيير رابط السيرفر الأساسي حسب القارئ
+      // إذا لم يكن موجوداً، نقوم بتحميله لمرة واحدة فقط من الإنترنت
       final audioUrl = 'https://server8.mp3quran.net/afs/${surahNumber.padLeft(3, '0')}.mp3';
       
       final response = await http.get(Uri.parse(audioUrl));
@@ -39,7 +38,7 @@ class AudioService {
     return null;
   }
 
-  // دالة لتشغيل السورة محلياً
+  // دالة تشغيل السورة محلياً
   static Future<void> playSurah(String surahNumber, String reciterId) async {
     String? localPath = await getAudioFilePath(surahNumber, reciterId);
     if (localPath != null) {
@@ -48,7 +47,7 @@ class AudioService {
     }
   }
 
-  // إيقاف مؤقت أو كامل
+  // دالة الإيقاف
   static Future<void> stop() async {
     await _player.stop();
   }
