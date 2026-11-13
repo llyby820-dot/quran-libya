@@ -6,8 +6,8 @@ import 'package:just_audio/just_audio.dart';
 class AudioService {
   static final AudioPlayer _player = AudioPlayer();
 
-  // الحصول على ملف الصوت للسورة محلياً أو تحميله من السيرفر المعتمد
-  static Future<String?> getAudioFilePath(String surahNumber, String reciterFolder) async {
+  // دالة لجلب مسار الصوت أو تحميله وتخزينه محلياً
+  static Future<String?> getAudioFilePath(int surahNumber, String reciterFolder) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final folderPath = Directory('${directory.path}/quran_audio/$reciterFolder');
@@ -16,35 +16,36 @@ class AudioService {
         await folderPath.create(recursive: true);
       }
 
-      // توحيد اسم الملف برقم السورة (مثال: 001.mp3)
-      String formattedSurahNum = surahNumber.padLeft(3, '0');
+      // تنسيق رقم السورة ليصبح من ثلاثة أرقام (مثال: 001, 036, 114)
+      String formattedSurahNum = surahNumber.toString().padLeft(3, '0');
       final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
       final file = File(filePath);
 
-      // إذا كان الملف مخزناً مسبقاً في الهاتف، يتم تشغيله فورا بدون إنترنت
+      // إذا كان الملف موجوداً محلياً، يتم تشغيله فورا بدون إنترنت
       if (await file.exists()) {
         return filePath;
       }
 
-      // رابط السيرفر المباشر والمستقر لجميع القراء (mp3quran)
+      // رابط السيرفر الرسمي والمستقر لجميع القراء
       final audioUrl = 'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3';
 
-      print('جاري تحميل الصوت من: $audioUrl');
+      print('جاري التحميل من: $audioUrl');
       final response = await http.get(Uri.parse(audioUrl));
       
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return filePath;
       } else {
-        print('خطأ في الاتصال بالسيرفر: ${response.statusCode}');
+        print('فشل التحميل من السيرفر، الرمز: ${response.statusCode}');
       }
     } catch (e) {
-      print('خطأ في التحميل المحلي: $e');
+      print('خطأ في الاتصال: $e');
     }
     return null;
   }
 
-  static Future<void> playAudio(String surahNumber, String reciterFolder) async {
+  // دالة التشغيل
+  static Future<void> playSurahAudio(int surahNumber, String reciterFolder) async {
     try {
       String? localPath = await getAudioFilePath(surahNumber, reciterFolder);
       if (localPath != null) {
@@ -52,7 +53,7 @@ class AudioService {
         await _player.play();
       }
     } catch (e) {
-      print('خطأ أثناء تشغيل الصوت: $e');
+      print('خطأ في المشغل: $e');
     }
   }
 
