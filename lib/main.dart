@@ -373,7 +373,7 @@ class _QuranPageState extends State<QuranPagesView> {
     super.dispose();
   }
 
-  // دالة التشغيل المحدثة للعمل محلياً بدون إنترنت عبر AudioService
+  // دالة التشغيل المحدثة لاعتماد رقم السورة الصحيح والتحميل المحلي عبر AudioService
   Future<void> _toggleAudio() async {
     if (isPlaying) {
       await AudioService.stop();
@@ -382,21 +382,27 @@ class _QuranPageState extends State<QuranPagesView> {
         isLoadingAudio = true;
       });
       try {
-        String pageFormatted = currentPage.toString().padLeft(3, '0');
+        // تحديد السورة الحالية بناءً على الصفحة المعروضة
+        SurahInfo currentActiveSurah = surahs.lastWhere(
+          (s) => s.pageNumber <= currentPage,
+          orElse: () => surahs.first,
+        );
+
+        int currentSurahNumber = currentActiveSurah.number;
         
-        // جلب مسار الملف محلياً (وإن لم يكن موجوداً يتم تحميله وتخزينه تلقائياً لأول مرة)
-        String? localPath = await AudioService.getAudioFilePath(pageFormatted, selectedReciter.folderName);
+        // جلب مسار ملف الصوت محلياً (وإن لم يكن مخزناً يتم تحميله وتخزينه تلقائياً لأول مرة)
+        String? localPath = await AudioService.getAudioFilePath(currentSurahNumber, selectedReciter.folderName);
         
         if (localPath != null) {
           await _audioPlayer.setFilePath(localPath);
           await _audioPlayer.play();
         } else {
-          throw Exception("فشل في تحميل أو جلب الملف الصوتي");
+          throw Exception("تعذر جلب ملف الصوت");
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تعذر تحميل الصوت، تحقق من الاتصال بالإنترنت للتحميل لأول مرة')),
+            const SnackBar(content: Text('تعذر تحميل الصوت، تأكد من اتصال الإنترنت للتحميل لأول مرة')),
           );
         }
       } finally {
