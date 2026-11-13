@@ -5,49 +5,57 @@ import 'package:just_audio/just_audio.dart';
 
 class AudioService {
   static final AudioPlayer _player = AudioPlayer();
-  
-  // دالة للتحقق من وجود السورة محلياً، وإذا لم تكن موجودة يتم تحميلها وتخزينها
-  static Future<String?> getAudioFilePath(String surahNumber, String reciterId) async {
+
+  // الحصول على ملف الصوت للسورة محلياً أو تحميله من السيرفر المعتمد
+  static Future<String?> getAudioFilePath(String surahNumber, String reciterFolder) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      // إنشاء مجلد خاص بالصوتيات داخل ذاكرة التطبيق الداخلية
-      final folderPath = Directory('${directory.path}/quran_audio/$reciterId');
+      final folderPath = Directory('${directory.path}/quran_audio/$reciterFolder');
+      
       if (!await folderPath.exists()) {
         await folderPath.create(recursive: true);
       }
 
-      final filePath = '${folderPath.path}/surah_$surahNumber.mp3';
+      // توحيد اسم الملف برقم السورة (مثال: 001.mp3)
+      String formattedSurahNum = surahNumber.padLeft(3, '0');
+      final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
       final file = File(filePath);
 
-      // إذا كان الملف مخزناً مسبقاً، نرجع مساره فوراً للتشغيل بدون إنترنت
+      // إذا كان الملف مخزناً مسبقاً في الهاتف، يتم تشغيله فورا بدون إنترنت
       if (await file.exists()) {
         return filePath;
       }
 
-      // إذا لم يكن موجوداً، نقوم بتحميله لمرة واحدة فقط من الإنترنت
-      final audioUrl = 'https://server8.mp3quran.net/afs/${surahNumber.padLeft(3, '0')}.mp3';
-      
+      // رابط السيرفر المباشر والمستقر لجميع القراء (mp3quran)
+      final audioUrl = 'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3';
+
+      print('جاري تحميل الصوت من: $audioUrl');
       final response = await http.get(Uri.parse(audioUrl));
+      
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return filePath;
+      } else {
+        print('خطأ في الاتصال بالسيرفر: ${response.statusCode}');
       }
     } catch (e) {
-      print('خطأ في تحميل أو تشغيل الملف الصوتي: $e');
+      print('خطأ في التحميل المحلي: $e');
     }
     return null;
   }
 
-  // دالة تشغيل السورة محلياً
-  static Future<void> playSurah(String surahNumber, String reciterId) async {
-    String? localPath = await getAudioFilePath(surahNumber, reciterId);
-    if (localPath != null) {
-      await _player.setFilePath(localPath);
-      await _player.play();
+  static Future<void> playAudio(String surahNumber, String reciterFolder) async {
+    try {
+      String? localPath = await getAudioFilePath(surahNumber, reciterFolder);
+      if (localPath != null) {
+        await _player.setFilePath(localPath);
+        await _player.play();
+      }
+    } catch (e) {
+      print('خطأ أثناء تشغيل الصوت: $e');
     }
   }
 
-  // دالة الإيقاف
   static Future<void> stop() async {
     await _player.stop();
   }
