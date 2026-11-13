@@ -136,7 +136,6 @@ class _QuranPageState extends State<QuranPagesView> {
   String? hizbNotificationText;
   bool showHizbNotification = false;
 
-  // 🔊 مشغل الصوتيات والقراء الـ 5
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isPlaying = false;
   bool isLoadingAudio = false;
@@ -373,7 +372,6 @@ class _QuranPageState extends State<QuranPagesView> {
     super.dispose();
   }
 
-  // 🎵 دالة تشغيل الصوت بناءً على الصفحة الحالية والقارئ المختار
   Future<void> _toggleAudio() async {
     if (isPlaying) {
       await _audioPlayer.pause();
@@ -574,7 +572,7 @@ class _QuranPageState extends State<QuranPagesView> {
                     });
                     Navigator.pop(context);
                     if (isPlaying) {
-                      _toggleAudio(); // إعادة التشغيل بصوت القارئ الجديد
+                      _toggleAudio();
                     }
                   },
                 );
@@ -587,7 +585,16 @@ class _QuranPageState extends State<QuranPagesView> {
   }
 
   void _openTafseer() async {
-    int selectedSurahIndex = 0; 
+    // تحديد السورة الحالية تلقائياً بناءً على الصفحة النشطة حالياً
+    SurahInfo currentActiveSurah = surahs.lastWhere(
+      (s) => s.pageNumber <= currentPage,
+      orElse: () => surahs.first,
+    );
+
+    int initialSurahIndex = surahs.indexWhere((s) => s.number == currentActiveSurah.number);
+    if (initialSurahIndex == -1) initialSurahIndex = 0;
+
+    int selectedSurahIndex = initialSurahIndex; 
     int selectedAyahNumber = 1;
 
     String jsonString = await rootBundle.loadString('assets/data/tafseer.json');
@@ -639,14 +646,6 @@ class _QuranPageState extends State<QuranPagesView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'التفسير الميسر',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
-                        ),
-                      ),
                       InkWell(
                         onTap: () {
                           showDialog(
@@ -676,10 +675,11 @@ class _QuranPageState extends State<QuranPagesView> {
                           );
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1B4D3E).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF1B4D3E).withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
@@ -688,6 +688,59 @@ class _QuranPageState extends State<QuranPagesView> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF1B4D3E),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_drop_down, color: Color(0xFF1B4D3E)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('اختر رقم الآية (من 1 إلى $maxAyahs)'),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                height: 350,
+                                child: ListView.builder(
+                                  itemCount: maxAyahs,
+                                  itemBuilder: (context, index) {
+                                    int ayahNum = index + 1;
+                                    return ListTile(
+                                      title: Text("الآية رقم ($ayahNum)", style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      trailing: selectedAyahNumber == ayahNum ? const Icon(Icons.check, color: Color(0xFF1B4D3E)) : null,
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedAyahNumber = ayahNum;
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1B4D3E).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF1B4D3E).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'الآية $selectedAyahNumber',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1B4D3E),
+                                  fontSize: 14,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -699,116 +752,77 @@ class _QuranPageState extends State<QuranPagesView> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: widget.isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline),
-                          color: const Color(0xFF1B4D3E),
-                          onPressed: selectedAyahNumber > 1
-                              ? () {
-                                  setModalState(() {
-                                    selectedAyahNumber--;
-                                  });
-                                }
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '$selectedAyahNumber',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: widget.isDarkMode ? Colors.white : const Color(0xFF1B4D3E),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: const Color(0xFF1B4D3E),
-                          onPressed: selectedAyahNumber < maxAyahs
-                              ? () {
-                                  setModalState(() {
-                                    selectedAyahNumber++;
-                                  });
-                                }
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   Divider(color: widget.isDarkMode ? Colors.white12 : Colors.black12),
                   const SizedBox(height: 10),
-
                   Expanded(
                     child: ListView(
                       physics: const BouncingScrollPhysics(),
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1B4D3E).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF1B4D3E).withOpacity(0.3)),
+                            color: widget.isDarkMode ? const Color(0xFF252525) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: const Color(0xFF1B4D3E).withOpacity(0.2),
+                              width: 1,
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "﴿ الآية $selectedAyahNumber ﴾",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.isDarkMode ? Colors.amber.shade200 : const Color(0xFF1B4D3E),
-                                    ),
-                                  ),
-                                  InkWell(
-                                    onTap: () {
-                                      Clipboard.setData(ClipboardData(
-                                          text: "${surahs[selectedSurahIndex].name} - الآية ($selectedAyahNumber)\n\nالتفسير: $currentTafseerText"));
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('تم نسخ التفسير بنجاح'),
-                                          behavior: SnackBarBehavior.floating,
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    },
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6.0),
-                                      child: Row(
-                                        children: const [
-                                          Icon(Icons.copy_rounded, size: 16, color: Color(0xFF1B4D3E)),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'نسخ',
-                                            style: TextStyle(fontSize: 12, color: Color(0xFF1B4D3E), fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1B4D3E).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "📖 ${surahs[selectedSurahIndex].name} - الآية ($selectedAyahNumber)",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: widget.isDarkMode ? Colors.amber.shade300 : const Color(0xFF1B4D3E),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    InkWell(
+                                      onTap: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text: "${surahs[selectedSurahIndex].name} - الآية ($selectedAyahNumber)\n\nالتفسير: $currentTafseerText"));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم نسخ التفسير بنجاح'),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(6.0),
+                                        child: Icon(Icons.copy_rounded, size: 18, color: Color(0xFF1B4D3E)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 14),
                               Text(
                                 currentTafseerText,
                                 textAlign: TextAlign.justify,
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  height: 1.8,
+                                  fontSize: 16.5,
+                                  height: 1.85,
                                   color: widget.isDarkMode ? Colors.white.withOpacity(0.9) : const Color(0xFF2C3E50),
                                 ),
                               ),
@@ -890,7 +904,7 @@ class _QuranPageState extends State<QuranPagesView> {
                 _saveCurrentPage(page);
                 _checkHizbNotification(page);
                 if (isPlaying) {
-                  _toggleAudio(); // إيقاف أوتشغيل الصوت حسب الصفحة الجديدة
+                  _toggleAudio();
                 }
               },
               itemBuilder: (context, index) {
@@ -1006,7 +1020,6 @@ class _QuranPageState extends State<QuranPagesView> {
                         icon: const Icon(Icons.format_list_bulleted, color: Colors.white, size: 20),
                         label: const Text('الفهرس', style: TextStyle(color: Colors.white, fontSize: 12)),
                       ),
-                      // 🔊 زر القراءة الصوتية (تشغيل / إيقاف)
                       IconButton(
                         icon: isLoadingAudio
                             ? const SizedBox(
@@ -1018,7 +1031,6 @@ class _QuranPageState extends State<QuranPagesView> {
                         tooltip: 'التلاوة الصوتية',
                         onPressed: _toggleAudio,
                       ),
-                      // 👤 زر اختيار القارئ
                       IconButton(
                         icon: const Icon(Icons.record_voice_over, color: Colors.white, size: 20),
                         tooltip: 'اختر القارئ',
