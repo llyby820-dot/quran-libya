@@ -16,9 +16,8 @@ class AudioService {
         await folderPath.create(recursive: true);
       }
 
-      // تنسيق رقم السورة ليصبح من ثلاثة أرقام (مثال: 001, 036, 114)
-      String formattedSurahNum = surahNumber.toString().padLeft(3, '0');
-      final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
+      // تنسيق رقم الملف ليتطابق مع السيرفر بدون أصفار يسارية (مثال: 1.mp3, 36.mp3, 114.mp3)
+      final filePath = '${folderPath.path}/surah_$surahNumber.mp3';
       final file = File(filePath);
 
       // إذا كان الملف موجوداً محلياً، يتم تشغيله فورا بدون إنترنت
@@ -26,8 +25,8 @@ class AudioService {
         return filePath;
       }
 
-      // رابط السيرفر المحدث والمطابق لأسماء مجلدات القراء الصحيحة
-      final audioUrl = 'https://everyayah.com/data/$reciterFolder/$formattedSurahNum.mp3';
+      // رابط السيرفر المحدث والمطابق لرقم السورة المباشر
+      final audioUrl = 'https://everyayah.com/data/$reciterFolder/$surahNumber.mp3';
 
       print('جاري التحميل من: $audioUrl');
       final response = await http.get(Uri.parse(audioUrl));
