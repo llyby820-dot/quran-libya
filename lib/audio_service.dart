@@ -26,8 +26,8 @@ class AudioService {
         return filePath;
       }
 
-      // رابط السيرفر الرسمي والمستقر لجميع القراء
-      final audioUrl = 'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3';
+      // رابط السيرفر المحدث والمطابق لأسماء مجلدات القراء الصحيحة
+      final audioUrl = 'https://everyayah.com/data/$reciterFolder/$formattedSurahNum.mp3';
 
       print('جاري التحميل من: $audioUrl');
       final response = await http.get(Uri.parse(audioUrl));
