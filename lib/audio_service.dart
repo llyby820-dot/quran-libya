@@ -23,11 +23,11 @@ class AudioService {
         if (await file.length() > 5000) {
           return filePath;
         } else {
-          await file.delete();
+          await file.delete(); // حذف الملف لو كان تالفاً أو فارغاً
         }
       }
 
-      // روابط مباشرة وموثوقة لسيرفرات القرآن الكريم الشهيرة
+      // قائمة سيرفرات بديلة وموثوقة للقرآن الكريم
       final List<String> candidateUrls = [
         'https://server11.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3',
         'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3',
