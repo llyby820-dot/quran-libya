@@ -25,15 +25,32 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
+      - name: Backup Local Code
+        run: |
+          mkdir -p temp_backup/lib
+          if [ -d "lib" ]; then cp -r lib/* temp_backup/lib/; fi
+          if [ -f "pubspec.yaml" ]; then cp pubspec.yaml temp_backup/; fi
+
+      - name: Generate Android Platform Files
+        run: |
+          flutter create . --org com.quran.libya --project-name quran_awqaf_libya --platforms android
+
+      - name: Restore Local Code
+        run: |
+          if [ -d "temp_backup/lib" ]; then cp -r temp_backup/lib/* lib/; fi
+          if [ -f "temp_backup/pubspec.yaml" ]; then cp temp_backup/pubspec.yaml pubspec.yaml; fi
+          rm -rf temp_backup
+
       - name: Download & Extract Assets from Release
         run: |
           echo "Downloading assets.zip..."
-          curl -L -o assets.zip https://github.com/${{ github.repository }}/releases/download/v1.0.0/assets.zip
-          echo "Extracting assets..."
-          unzip -q assets.zip -d .
-
-      - name: Fix Gradle and Project Configuration
-        run: flutter create --platforms=android --project-name quran_awqaf_libya --org com.quran.libya .
+          curl -L -o assets.zip https://github.com/${{ github.repository }}/releases/download/v1.0.0/assets.zip || echo "Failed to download assets.zip"
+          if [ -f "assets.zip" ]; then
+            echo "Extracting assets..."
+            unzip -q assets.zip -d .
+          else
+            echo "assets.zip not found"
+          fi
 
       - name: Install Dependencies
         run: flutter pub get
