@@ -15,27 +15,31 @@ class AudioService {
         await folderPath.create(recursive: true);
       }
 
-      final filePath = '${folderPath.path}/surah_$surahNumber.mp3';
+      // تنسيق رقم السورة ليصبح بثلاثة أرقام (مثال: 001, 036, 114) وهو النظام الذي يدعمه سيرفر mp3quran
+      String formattedSurahNum = surahNumber.toString().padLeft(3, '0');
+      final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
       final file = File(filePath);
 
       if (await file.exists()) {
         return filePath;
       }
 
-      final audioUrl = 'https://everyayah.com/data/$reciterFolder/$surahNumber.mp3';
-      
+      // استخدام سيرفر mp3quran الرسمي والمستقر الذي يتوافق تماماً مع أرقام السور القادمة من main.dart
+      final audioUrl = 'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3';
+      print('جاري التحميل من: $audioUrl');
+
       final response = await http.get(Uri.parse(audioUrl));
       
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return filePath;
       } else {
-        // رمي خطأ برمز الاستجابة لنعرف السبب بالضبط
-        throw 'خطأ السيرفر: ${response.statusCode} (تأكد من اسم المجلد: $reciterFolder)';
+        print('فشل التحميل، رمز الاستجابة: ${response.statusCode}');
       }
     } catch (e) {
-      throw 'فشل التحميل: $e';
+      print('خطأ في الاتصال: $e');
     }
+    return null;
   }
 
   static Future<void> playSurahAudio(int surahNumber, String reciterFolder) async {
@@ -46,7 +50,7 @@ class AudioService {
         await _player.play();
       }
     } catch (e) {
-      rethrow; // إعادة إرسال الخطأ لواجهة التطبيق ليظهر للمستخدم
+      print('خطأ في التشغيل: $e');
     }
   }
 
