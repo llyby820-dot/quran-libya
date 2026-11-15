@@ -6,7 +6,6 @@ import 'package:just_audio/just_audio.dart';
 class AudioService {
   static final AudioPlayer _player = AudioPlayer();
 
-  // دالة لجلب مسار الصوت أو تحميله وتخزينه محلياً
   static Future<String?> getAudioFilePath(int surahNumber, String reciterFolder) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -16,34 +15,29 @@ class AudioService {
         await folderPath.create(recursive: true);
       }
 
-      // تنسيق رقم الملف ليتطابق مع السيرفر بدون أصفار يسارية (مثال: 1.mp3, 36.mp3, 114.mp3)
       final filePath = '${folderPath.path}/surah_$surahNumber.mp3';
       final file = File(filePath);
 
-      // إذا كان الملف موجوداً محلياً، يتم تشغيله فورا بدون إنترنت
       if (await file.exists()) {
         return filePath;
       }
 
-      // رابط السيرفر المحدث والمطابق لرقم السورة المباشر
       final audioUrl = 'https://everyayah.com/data/$reciterFolder/$surahNumber.mp3';
-
-      print('جاري التحميل من: $audioUrl');
+      
       final response = await http.get(Uri.parse(audioUrl));
       
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return filePath;
       } else {
-        print('فشل التحميل من السيرفر، الرمز: ${response.statusCode}');
+        // رمي خطأ برمز الاستجابة لنعرف السبب بالضبط
+        throw 'خطأ السيرفر: ${response.statusCode} (تأكد من اسم المجلد: $reciterFolder)';
       }
     } catch (e) {
-      print('خطأ في الاتصال: $e');
+      throw 'فشل التحميل: $e';
     }
-    return null;
   }
 
-  // دالة التشغيل
   static Future<void> playSurahAudio(int surahNumber, String reciterFolder) async {
     try {
       String? localPath = await getAudioFilePath(surahNumber, reciterFolder);
@@ -52,7 +46,7 @@ class AudioService {
         await _player.play();
       }
     } catch (e) {
-      print('خطأ في المشغل: $e');
+      rethrow; // إعادة إرسال الخطأ لواجهة التطبيق ليظهر للمستخدم
     }
   }
 
