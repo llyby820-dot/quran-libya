@@ -32,6 +32,9 @@ jobs:
           echo "Extracting assets..."
           unzip -q assets.zip -d .
 
+      - name: Fix Gradle and Project Configuration
+        run: flutter create --platforms=android --project-name quran_awqaf_libya --org com.quran.libya .
+
       - name: Install Dependencies
         run: flutter pub get
 
