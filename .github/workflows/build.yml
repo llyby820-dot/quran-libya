@@ -32,9 +32,6 @@ jobs:
           echo "Extracting assets..."
           unzip -q assets.zip -d .
 
-      - name: Update Android Gradle Files
-        run: flutter create --platforms=android .
-
       - name: Install Dependencies
         run: flutter pub get
 
