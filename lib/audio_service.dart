@@ -19,36 +19,35 @@ class AudioService {
       final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
       final file = File(filePath);
 
-      // إذا كان الملف مخزناً محلياً مسبقاً
       if (await file.exists()) {
-        if (await file.length() > 1000) { // التأكد من أن الملف سليم وليس فارغاً
+        if (await file.length() > 5000) {
           return filePath;
         } else {
-          await file.delete(); // حذف الملف التالف إن وجد
+          await file.delete();
         }
       }
 
-      // تجربة السيرفر الأول (mp3quran)
-      List<String> urls = [
+      // روابط مباشرة وموثوقة لسيرفرات القرآن الكريم الشهيرة
+      final List<String> candidateUrls = [
+        'https://server11.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3',
         'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3',
         'https://everyayah.com/data/$reciterFolder/$surahNumber.mp3',
       ];
 
-      for (String audioUrl in urls) {
+      for (String url in candidateUrls) {
         try {
-          print('محاولة التحميل من: $audioUrl');
-          final response = await http.get(Uri.parse(audioUrl));
-          
-          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          print('جاري محاولة التحميل من: $url');
+          final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+          if (response.statusCode == 200 && response.bodyBytes.length > 5000) {
             await file.writeAsBytes(response.bodyBytes);
             return filePath;
           }
         } catch (e) {
-          print('فشل الرابط $audioUrl بسبب: $e');
+          print('فشل الرابط $url: $e');
         }
       }
     } catch (e) {
-      print('خطأ عام في التخزين المؤقت: $e');
+      print('خطأ في الخدمة: $e');
     }
     return null;
   }
@@ -60,10 +59,10 @@ class AudioService {
         await _player.setFilePath(localPath);
         await _player.play();
       } else {
-        throw Exception("ملف الصوت غير متوفر");
+        throw Exception("الملف غير متوفر");
       }
     } catch (e) {
-      print('خطأ المشغل النهائي: $e');
+      print('خطأ المشغل: $e');
       rethrow;
     }
   }
