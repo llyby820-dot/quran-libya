@@ -15,29 +15,40 @@ class AudioService {
         await folderPath.create(recursive: true);
       }
 
-      // تنسيق رقم السورة ليصبح بثلاثة أرقام (مثال: 001, 036, 114) وهو النظام الذي يدعمه سيرفر mp3quran
       String formattedSurahNum = surahNumber.toString().padLeft(3, '0');
       final filePath = '${folderPath.path}/surah_$formattedSurahNum.mp3';
       final file = File(filePath);
 
+      // إذا كان الملف مخزناً محلياً مسبقاً
       if (await file.exists()) {
-        return filePath;
+        if (await file.length() > 1000) { // التأكد من أن الملف سليم وليس فارغاً
+          return filePath;
+        } else {
+          await file.delete(); // حذف الملف التالف إن وجد
+        }
       }
 
-      // استخدام سيرفر mp3quran الرسمي والمستقر الذي يتوافق تماماً مع أرقام السور القادمة من main.dart
-      final audioUrl = 'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3';
-      print('جاري التحميل من: $audioUrl');
+      // تجربة السيرفر الأول (mp3quran)
+      List<String> urls = [
+        'https://server8.mp3quran.net/$reciterFolder/$formattedSurahNum.mp3',
+        'https://everyayah.com/data/$reciterFolder/$surahNumber.mp3',
+      ];
 
-      final response = await http.get(Uri.parse(audioUrl));
-      
-      if (response.statusCode == 200) {
-        await file.writeAsBytes(response.bodyBytes);
-        return filePath;
-      } else {
-        print('فشل التحميل، رمز الاستجابة: ${response.statusCode}');
+      for (String audioUrl in urls) {
+        try {
+          print('محاولة التحميل من: $audioUrl');
+          final response = await http.get(Uri.parse(audioUrl));
+          
+          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+            await file.writeAsBytes(response.bodyBytes);
+            return filePath;
+          }
+        } catch (e) {
+          print('فشل الرابط $audioUrl بسبب: $e');
+        }
       }
     } catch (e) {
-      print('خطأ في الاتصال: $e');
+      print('خطأ عام في التخزين المؤقت: $e');
     }
     return null;
   }
@@ -48,9 +59,12 @@ class AudioService {
       if (localPath != null) {
         await _player.setFilePath(localPath);
         await _player.play();
+      } else {
+        throw Exception("ملف الصوت غير متوفر");
       }
     } catch (e) {
-      print('خطأ في التشغيل: $e');
+      print('خطأ المشغل النهائي: $e');
+      rethrow;
     }
   }
 
